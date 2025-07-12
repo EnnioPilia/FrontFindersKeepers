@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function Login() {
   const router = useRouter();
@@ -18,24 +19,22 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // const response = await fetch('http://192.168.X.X:8080/auth/login', {
       const response = await fetch('http://localhost:8080/auth/login', {
-
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', 
+        body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
+
+        if (data.token) {
+          await AsyncStorage.setItem('jwtToken', data.token);
+        }
+
         Alert.alert('Succès', data.message || 'Connexion réussie !');
 
-        // Redirection vers la page d'accueil après connexion
         router.replace('/home/home');
       } else if (response.status === 401) {
         const errorData = await response.json();
