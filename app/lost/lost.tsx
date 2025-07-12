@@ -1,6 +1,6 @@
 // app/lost.tsx
-import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function Lost() {
   const router = useRouter();
@@ -11,9 +11,9 @@ export default function Lost() {
       <View style={styles.container}>
         <Text style={styles.title}>Lost Items</Text>
 
-        <Pressable style={styles.button} onPress={() => router.push('/home/home')}>
+        {/* <Pressable style={styles.button} onPress={() => router.push('/home/home')}>
           <Text style={styles.buttonText}>Retour à l'accueil</Text>
-        </Pressable>
+        </Pressable> */}
       </View>
     </>
   );
