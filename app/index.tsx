@@ -1,6 +1,6 @@
-// app/index.tsx
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+// npm install @expo/vector-icons <---- ajouter Quentin !!!!!
 import { Link } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function AuthHome() {
   return (
