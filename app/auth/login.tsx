@@ -37,6 +37,13 @@ export default function Login() {
       } else if (response.status === 401) {
         const errorData = await response.json();
         Alert.alert('Erreur', errorData.error || 'Identifiants invalides');
+      } else if (response.status === 403) {
+        // Cas compte non activé (activation requise)
+        const errorData = await response.json();
+        Alert.alert(
+          'Compte non activé',
+          errorData.error || 'Veuillez activer votre compte via le lien reçu par email.'
+        );
       } else {
         Alert.alert('Erreur', 'Une erreur est survenue');
       }
@@ -82,12 +89,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 32, textAlign: 'center' },
   input: {
-    borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
   },
   button: {
-    backgroundColor: '#2e86de', paddingVertical: 14,
-    borderRadius: 10, alignItems: 'center',
+    backgroundColor: '#2e86de',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });
