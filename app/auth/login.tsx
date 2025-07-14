@@ -80,6 +80,11 @@ export default function Login() {
         <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Connexion...' : 'Se connecter'}</Text>
         </Pressable>
+
+        <Pressable onPress={() => router.push('/auth/forgot-password')}>
+          <Text style={styles.forgotPassword}>Mot de passe oublié ?</Text>
+        </Pressable>
+
       </View>
     </>
   );
@@ -103,4 +108,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  forgotPassword: {
+    color: '#2e86de',
+    marginTop: 16,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+
 });
