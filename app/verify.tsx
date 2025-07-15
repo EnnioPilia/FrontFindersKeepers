@@ -17,7 +17,7 @@ const { token } = useLocalSearchParams();
 
     const verifyAccount = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/auth/verify?token=${token}`);
+        const response = await fetch(`http://192.168.1.26:8080/auth/verify?token=${token}`);
         const text = await response.text();
         setMessage(text);
       } catch (error) {

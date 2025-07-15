@@ -1,34 +1,51 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export default function ResetPassword() {
-  const { token } = useLocalSearchParams(); // ✅ récupère depuis URL
+  const { token } = useLocalSearchParams();
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
     if (!newPassword) {
-      Alert.alert('Erreur', 'Veuillez entrer un nouveau mot de passe');
+      Toast.show({
+        type: 'error',
+        text1: 'Erreur',
+        text2: 'Veuillez entrer un nouveau mot de passe',
+      });
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/auth/reset-password', {
+      const response = await fetch('http://192.168.1.26:8080/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword }),
       });
 
       if (response.ok) {
-        Alert.alert('Succès', 'Mot de passe réinitialisé');
+        Toast.show({
+          type: 'success',
+          text1: 'Succès',
+          text2: 'Mot de passe réinitialisé',
+        });
       } else {
         const data = await response.json();
-        Alert.alert('Erreur', data.message || 'Échec de la réinitialisation');
+        Toast.show({
+          type: 'error',
+          text1: 'Erreur',
+          text2: data.message || 'Échec de la réinitialisation',
+        });
       }
     } catch (error) {
-      Alert.alert('Erreur', 'Une erreur est survenue');
+      Toast.show({
+        type: 'error',
+        text1: 'Erreur',
+        text2: 'Une erreur est survenue',
+      });
     } finally {
       setLoading(false);
     }

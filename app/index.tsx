@@ -1,6 +1,6 @@
 // npm install @expo/vector-icons 
-// npm install react-native-toast-message
-                                            // <---- ajouter Quentin !!!!!
+
+                                        
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 

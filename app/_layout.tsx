@@ -4,8 +4,9 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, Text, StyleSheet } from 'react-native';
 import { useAuth } from './auth/authContext';
+import Toast from 'react-native-toast-message';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -22,7 +23,7 @@ export default function RootLayout() {
   const handleLogout = async () => {
     alert('Voulez-vous vraiment vous déconnecter ?');
     await logout();
-    router.replace('/auth/login'); 
+    router.replace('/auth/login');
   };
 
   const excludedRoutes = ['/', '/auth/login', '/auth/register'];
@@ -46,12 +47,17 @@ export default function RootLayout() {
               </Pressable>
             ) : null,
           headerBackVisible: !isHome,
+          headerTitleStyle: {
+            color: colorScheme === 'dark' ? 'white' : 'black',  // Texte titre header
+          },
+          headerTintColor: colorScheme === 'dark' ? 'white' : 'black', // Couleur des boutons back, etc.
         }}
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" options={{ title: 'Page non trouvée' }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <Toast />
     </ThemeProvider>
   );
 }
