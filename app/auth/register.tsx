@@ -21,7 +21,7 @@ export default function Register() {
 
     try {
       // const response = await fetch('http://192.168.X.X:8080/auth/register', {
-      const response = await fetch('http://localhost:8080/auth/register', {
+      const response = await fetch('http://192.168.1.26:8080/auth/register', {
         method: 'POST',
         credentials: 'include',  // <- Important si tu gères les cookies
         headers: { 'Content-Type': 'application/json' },

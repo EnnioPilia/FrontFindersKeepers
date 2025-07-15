@@ -15,7 +15,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/auth/request-reset', {
+      const response = await fetch('http://192.168.1.26:8080/auth/request-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
