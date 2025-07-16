@@ -1,14 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useAuth } from "./authContext";
 import Toast from "react-native-toast-message";
 
@@ -21,22 +14,64 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Extraction stable des paramètres (string ou string[])
+  const fromRegister = Array.isArray(params.fromRegister) ? params.fromRegister[0] : params.fromRegister;
+  const fromReset = Array.isArray(params.fromReset) ? params.fromReset[0] : params.fromReset;
+  const fromForgotPassword = Array.isArray(params.fromForgotPassword) ? params.fromForgotPassword[0] : params.fromForgotPassword;
+  const forgotPasswordMessage = Array.isArray(params.message) ? params.message[0] : params.message;
+
   useEffect(() => {
-    if (params.fromRegister === "success") {
+    if (fromRegister === "success") {
       Toast.show({
         type: "success",
         text1: "Inscription réussie",
         text2:
           "Un email de validation vous a été envoyé. Veuillez cliquer sur le lien dans cet email pour activer votre compte.",
         position: "bottom",
-        visibilityTime: 10000, // 10 secondes
+        visibilityTime: 10000,
       });
+      const newParams = { ...params };
+      delete newParams.fromRegister;
+      router.replace({ pathname: "/auth/login", params: newParams });
     }
-  }, [params.fromRegister]);
+
+    if (fromReset === "success") {
+      Toast.show({
+        type: "success",
+        text1: "Mot de passe réinitialisé",
+        text2:
+          "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.",
+        position: "bottom",
+        visibilityTime: 10000,
+      });
+      const newParams = { ...params };
+      delete newParams.fromReset;
+      router.replace({ pathname: "/auth/login", params: newParams });
+    }
+
+    if (fromForgotPassword === "success") {
+      Toast.show({
+        type: "success",
+        text1: "Lien envoyé",
+        text2: forgotPasswordMessage || "Un email de réinitialisation a été envoyé.",
+        position: "bottom",
+        visibilityTime: 10000,
+      });
+      const newParams = { ...params };
+      delete newParams.fromForgotPassword;
+      delete newParams.message;
+      router.replace({ pathname: "/auth/login", params: newParams });
+    }
+  }, [fromRegister, fromReset, fromForgotPassword, forgotPasswordMessage, params, router]);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      Toast.show({
+        type: "error",
+        text1: "Erreur",
+        text2: "Veuillez remplir tous les champs",
+        position: "bottom",
+      });
       return;
     }
 
@@ -54,23 +89,46 @@ export default function Login() {
         const data = await response.json();
         setAuthenticated(true);
         await AsyncStorage.setItem("token", data.token ?? "");
-        Alert.alert("Succès", data.message || "Connexion réussie !");
+        Toast.show({
+          type: "success",
+          text1: "Succès",
+          text2: data.message || "Connexion réussie !",
+          position: "bottom",
+        });
         router.replace("/home/home");
       } else if (response.status === 401) {
         const errorData = await response.json();
-        Alert.alert("Erreur", errorData.error || "Identifiants invalides");
+        Toast.show({
+          type: "error",
+          text1: "Erreur",
+          text2: errorData.error || "Identifiants invalides",
+          position: "bottom",
+        });
       } else if (response.status === 403) {
         const errorData = await response.json();
-        Alert.alert(
-          "Compte non activé",
-          errorData.error ||
-            "Veuillez activer votre compte via le lien reçu par email."
-        );
+        Toast.show({
+          type: "error",
+          text1: "Compte non activé",
+          text2:
+            errorData.error ||
+            "Veuillez activer votre compte via le lien reçu par email.",
+          position: "bottom",
+        });
       } else {
-        Alert.alert("Erreur", "Une erreur est survenue");
+        Toast.show({
+          type: "error",
+          text1: "Erreur",
+          text2: "Une erreur est survenue",
+          position: "bottom",
+        });
       }
-    } catch (error) {
-      Alert.alert("Erreur", "Impossible de joindre le serveur");
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Erreur",
+        text2: "Impossible de joindre le serveur",
+        position: "bottom",
+      });
     } finally {
       setLoading(false);
     }
@@ -100,7 +158,7 @@ export default function Login() {
         />
 
         <Pressable
-          style={styles.button}
+          style={[styles.button, loading && { opacity: 0.6 }]}
           onPress={handleLogin}
           disabled={loading}
         >

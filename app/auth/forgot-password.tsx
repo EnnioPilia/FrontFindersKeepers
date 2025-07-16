@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -9,7 +10,12 @@ export default function ForgotPassword() {
 
   const handleRequestReset = async () => {
     if (!email) {
-      Alert.alert('Erreur', 'Veuillez entrer votre adresse email');
+      Toast.show({
+        type: 'error',
+        text1: 'Erreur',
+        text2: 'Veuillez entrer votre adresse email',
+        position: 'bottom',
+      });
       return;
     }
 
@@ -24,13 +30,26 @@ export default function ForgotPassword() {
       const message = await response.text();
 
       if (response.ok) {
-        Alert.alert('Succès', message);
-        router.back(); // retourne à l'écran de login
+        // Redirection vers login avec paramètre pour afficher le toast
+        router.replace({
+          pathname: '/auth/login',
+          params: { fromForgotPassword: 'success', message },
+        });
       } else {
-        Alert.alert('Erreur', message);
+        Toast.show({
+          type: 'error',
+          text1: 'Erreur',
+          text2: message,
+          position: 'bottom',
+        });
       }
-    } catch (error) {
-      Alert.alert('Erreur', 'Échec de la requête.');
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'Erreur',
+        text2: 'Échec de la requête.',
+        position: 'bottom',
+      });
     } finally {
       setLoading(false);
     }
@@ -51,10 +70,15 @@ export default function ForgotPassword() {
           style={styles.input}
         />
 
-        <Pressable style={styles.button} onPress={handleRequestReset} disabled={loading}>
+        <Pressable
+          style={[styles.button, loading && { opacity: 0.6 }]}
+          onPress={handleRequestReset}
+          disabled={loading}
+        >
           <Text style={styles.buttonText}>{loading ? 'Envoi en cours...' : 'Envoyer le lien'}</Text>
         </Pressable>
       </View>
+      <Toast />
     </>
   );
 }
