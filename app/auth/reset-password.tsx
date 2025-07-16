@@ -1,10 +1,11 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 export default function ResetPassword() {
   const { token } = useLocalSearchParams();
+  const router = useRouter();
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,12 +15,13 @@ export default function ResetPassword() {
         type: 'error',
         text1: 'Erreur',
         text2: 'Veuillez entrer un nouveau mot de passe',
+        position: 'bottom',
       });
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await fetch('http://192.168.1.26:8080/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,10 +29,10 @@ export default function ResetPassword() {
       });
 
       if (response.ok) {
-        Toast.show({
-          type: 'success',
-          text1: 'Succès',
-          text2: 'Mot de passe réinitialisé',
+        // Redirection vers login avec paramètre pour afficher toast
+        router.replace({
+          pathname: '/auth/login',
+          params: { fromReset: 'success' },
         });
       } else {
         const data = await response.json();
@@ -38,13 +40,15 @@ export default function ResetPassword() {
           type: 'error',
           text1: 'Erreur',
           text2: data.message || 'Échec de la réinitialisation',
+          position: 'bottom',
         });
       }
-    } catch (error) {
+    } catch {
       Toast.show({
         type: 'error',
         text1: 'Erreur',
         text2: 'Une erreur est survenue',
+        position: 'bottom',
       });
     } finally {
       setLoading(false);
@@ -61,9 +65,14 @@ export default function ResetPassword() {
         onChangeText={setNewPassword}
         style={styles.input}
       />
-      <Pressable style={styles.button} onPress={handleReset} disabled={loading}>
+      <Pressable
+        style={[styles.button, loading && { opacity: 0.6 }]}
+        onPress={handleReset}
+        disabled={loading}
+      >
         <Text style={styles.buttonText}>{loading ? 'En cours...' : 'Réinitialiser'}</Text>
       </Pressable>
+      <Toast />
     </View>
   );
 }
