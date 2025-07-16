@@ -11,13 +11,10 @@ export default function Home() {
       <View style={styles.container}>
         <Text style={styles.title}>Finders Keepers</Text>
 
-        <Pressable style={styles.button} onPress={() => router.push('/lost/lost')}>
-          <Text style={styles.buttonText}>Objet Perdu</Text>
+        <Pressable style={styles.button} onPress={() => router.push('/objectForm/objectForm')}>
+          <Text style={styles.buttonText}>Poster une annonce</Text>
         </Pressable>
 
-        <Pressable style={styles.button} onPress={() => router.push('/found/found')}>
-          <Text style={styles.buttonText}>Objet Trouvé</Text>
-        </Pressable>
       </View>
     </>
   );
