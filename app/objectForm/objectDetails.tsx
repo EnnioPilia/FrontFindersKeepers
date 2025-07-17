@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Button,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import authFetch from '../utils/authFetch';
@@ -13,6 +22,12 @@ interface ObjectDetail {
   date: string;
   type: 'PERDU' | 'TROUVE';
   reclame: boolean;
+  owner: {
+    id: number;
+    nom: string;
+    prenom: string;
+    email: string;
+  } | null;
 }
 
 export default function ObjectDetails() {
@@ -22,8 +37,11 @@ export default function ObjectDetails() {
   const [loading, setLoading] = useState(true);
   const [photoExists, setPhotoExists] = useState(false);
 
+  // Ne plus passer currentUserId, le backend récupère l'utilisateur connecté via JWT token
+
   useEffect(() => {
     if (!id) {
+      console.log('⚠️ Aucun id fourni, retour en arrière.');
       Alert.alert('Erreur', "Aucun identifiant d'objet fourni.");
       router.back();
       return;
@@ -44,8 +62,7 @@ export default function ObjectDetails() {
           setPhotoExists(info.exists);
         }
       } catch (error) {
-        console.error('Erreur lors du chargement:', error);
-        Alert.alert('Erreur', 'Impossible de charger les détails de l’objet.');
+        Alert.alert('Erreur', "Impossible de charger les détails de l’objet.");
         router.back();
       } finally {
         setLoading(false);
@@ -71,6 +88,45 @@ export default function ObjectDetails() {
     );
   }
 
+  const handleContact = async () => {
+    if (!object.owner || !object.owner.id) {
+      Alert.alert('Erreur', "Identifiant du propriétaire non disponible");
+      return;
+    }
+
+    // Optionnel: vérification côté front que l’utilisateur ne contacte pas lui-même,
+    // à faire seulement si tu peux récupérer l’ID utilisateur connecté
+
+    const conversationPayload = {
+      user2Id: object.owner.id,
+    };
+
+    try {
+      const response = await authFetch(
+        'http://192.168.1.108:8080/conversation/conversation/getOrCreate',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(conversationPayload),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err || 'Erreur inconnue');
+      }
+
+      const conversation = await response.json();
+
+      router.push({
+        pathname: '/conversation/conversation',
+        params: { conversationId: conversation.id.toString() },
+      });
+    } catch (error: any) {
+      Alert.alert('Erreur', `Impossible de démarrer la conversation: ${error.message}`);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {photoExists ? (
@@ -80,30 +136,32 @@ export default function ObjectDetails() {
           <Text style={{ color: '#999' }}>Pas d’image disponible</Text>
         </View>
       )}
+
       <Text style={styles.title}>{object.name ?? 'Sans nom'}</Text>
       <Text style={styles.type}>{object.type}</Text>
+
       <Text style={styles.label}>Description :</Text>
       <Text style={styles.description}>{object.description}</Text>
+
       <Text style={styles.label}>Localisation :</Text>
       <Text style={styles.meta}>{object.localisation}</Text>
+
       <Text style={styles.label}>Date :</Text>
       <Text style={styles.meta}>{new Date(object.date).toLocaleString()}</Text>
+
       <Text style={styles.label}>Réclamé :</Text>
       <Text style={styles.meta}>{object.reclame ? 'Oui' : 'Non'}</Text>
+
+      <View style={styles.contactButton}>
+        <Button title="Contacter" onPress={handleContact} color="#2e86de" />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { padding: 20, backgroundColor: '#fff' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   image: {
     width: '100%',
     height: 250,
@@ -111,32 +169,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
     marginBottom: 20,
   },
-  noImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  type: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#2e86de',
-  },
-  label: {
-    fontWeight: '700',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  description: {
-    fontSize: 16,
-    color: '#333',
-  },
-  meta: {
-    fontSize: 14,
-    color: '#666',
-  },
+  noImage: { justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  type: { fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#2e86de' },
+  label: { fontWeight: '700', marginTop: 12, marginBottom: 4 },
+  description: { fontSize: 16, color: '#333' },
+  meta: { fontSize: 14, color: '#666' },
+  contactButton: { marginTop: 30 },
 });

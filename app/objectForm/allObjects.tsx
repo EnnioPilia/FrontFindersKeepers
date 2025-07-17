@@ -8,7 +8,7 @@ interface ObjectItem {
   id: number;
   name: string | null;
   description: string;
-  photoPath: string | null;
+  photoPath: string;
   localisation: string;
   date: string;
   type: 'PERDU' | 'TROUVE';
