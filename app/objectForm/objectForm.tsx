@@ -9,6 +9,7 @@ import {
   Alert,
   Pressable,
 } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -21,6 +22,7 @@ export default function ObjectForm() {
   const [type, setType] = useState<"PERDU" | "TROUVE" | "">("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [region, setRegion] = useState<Region | null>(null);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -36,12 +38,24 @@ export default function ObjectForm() {
       }
 
       const loc = await Location.getCurrentPositionAsync({});
+      const initialRegion: Region = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(initialRegion);
       setLocation({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
       });
     })();
   }, []);
+
+  const onMarkerDragEnd = (e: any) => {
+    const coords = e.nativeEvent.coordinate;
+    setLocation(coords);
+  };
 
   const handleSubmit = async () => {
     if (!type || !description || !location) {
@@ -70,7 +84,6 @@ export default function ObjectForm() {
 
       Alert.alert("Succès", "Formulaire soumis ✅");
 
-      // Reset form
       setType("");
       setDescription("");
       setLocation(null);
@@ -103,12 +116,29 @@ export default function ObjectForm() {
       />
 
       <Text style={styles.label}>Localisation</Text>
-      {location ? (
+      {region ? (
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          region={region}
+          onRegionChangeComplete={setRegion}
+        >
+          {location && (
+            <Marker
+              coordinate={location}
+              draggable
+              onDragEnd={onMarkerDragEnd}
+            />
+          )}
+        </MapView>
+      ) : (
+        <Text style={styles.locationText}>Chargement de la carte...</Text>
+      )}
+
+      {location && (
         <Text style={styles.locationText}>
           Latitude : {location.latitude.toFixed(4)}, Longitude : {location.longitude.toFixed(4)}
         </Text>
-      ) : (
-        <Text style={styles.locationText}>Localisation non disponible</Text>
       )}
 
       <Text style={styles.label}>Date de perte / découverte</Text>
@@ -151,8 +181,13 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   pickerWrapper: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6 },
-  locationText: { marginTop: 8, fontStyle: "italic" },
-  dateText: { marginVertical: 10 },
+  map: {
+    height: 300,
+    width: "100%",
+    marginVertical: 10,
+  },
+  locationText: { marginTop: 8, fontStyle: "italic", textAlign: "center" },
+  dateText: { marginVertical: 10, textAlign: "center" },
   backButton: { marginTop: 30, alignItems: "center" },
   backText: { color: "#2e86de", fontWeight: "bold" },
 });
