@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export async function authFetch(input: RequestInfo, init?: RequestInit) {
+export default async function authFetch(input: RequestInfo, init?: RequestInit) {
   try {
     const token = await AsyncStorage.getItem("token");
 
