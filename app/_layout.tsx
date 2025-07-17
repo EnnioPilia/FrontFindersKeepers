@@ -12,7 +12,7 @@ import { Pressable, View, StyleSheet } from "react-native";
 import Toast from "react-native-toast-message";
 import { useAuth } from "../src/context/authContext";
 
-import Footer from "../src/components/Footer"; // importe ton footer
+import Footer from "../src/components/Footer";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
