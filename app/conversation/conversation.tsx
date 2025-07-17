@@ -18,14 +18,12 @@ import authFetch from '../utils/authFetch';
 
 interface Message {
   id: number;
-  senderId: number;
+  sender: {
+    email: string;
+    // autres champs si besoin
+  };
   contenu: string;
   dateEnvoi: string;
-}
-
-interface TokenPayload {
-  sub: string; // ou autre champ qui contient l'id utilisateur selon ton token
-  // ajoute ici d'autres champs si besoin
 }
 
 export default function Conversation() {
@@ -35,28 +33,41 @@ export default function Conversation() {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUserIdFromToken = async () => {
+    const getUserEmailFromToken = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-        if (token) {
-          const decoded = jwtDecode<TokenPayload>(token);
-          // Ici tu adaptes selon ton token, par exemple si id est dans sub
-          const id = Number(decoded.sub);
-          setCurrentUserId(id);
+        if (!token) {
+          Alert.alert('Erreur', 'Token non trouvé. Veuillez vous reconnecter.');
+          return;
         }
-      } catch (error) {
+        const decoded = jwtDecode<any>(token);
+        console.log('Token décodé:', decoded);
+
+        const userEmail = decoded.sub;
+        if (!userEmail || typeof userEmail !== 'string') {
+          Alert.alert('Erreur', "L'email utilisateur n'est pas présent dans le token.");
+          return;
+        }
+
+        setCurrentUserEmail(userEmail);
+      } catch (error: any) {
         console.error('Erreur décodage token:', error);
+        Alert.alert('Erreur', 'Impossible de décoder le token. Veuillez vous reconnecter.');
       }
     };
-    getUserIdFromToken();
+    getUserEmailFromToken();
   }, []);
 
   useEffect(() => {
     if (!conversationId) {
       Alert.alert('Erreur', 'Aucun ID de conversation fourni.');
+      return;
+    }
+    if (currentUserEmail === null) {
+      // On attend d'avoir l'email utilisateur avant de charger les messages
       return;
     }
 
@@ -79,7 +90,7 @@ export default function Conversation() {
     };
 
     fetchMessages();
-  }, [conversationId]);
+  }, [conversationId, currentUserEmail]);
 
   const sendMessage = async () => {
     if (newMessage.trim().length === 0) return;
@@ -115,7 +126,7 @@ export default function Conversation() {
     }
   };
 
-  if (loading || currentUserId === null) {
+  if (loading || currentUserEmail === null) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2e86de" />
@@ -134,7 +145,7 @@ export default function Conversation() {
         data={messages}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          const isMine = item.senderId === currentUserId;
+          const isMine = item.sender.email === currentUserEmail;
           return (
             <View
               style={[

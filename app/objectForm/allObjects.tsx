@@ -116,14 +116,6 @@ export default function AllObjects() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
-      <View style={styles.photoList}>
-        <Text style={{ fontWeight: 'bold' }}>Fichiers photos locaux :</Text>
-        {photoFiles.length > 0 ? (
-          photoFiles.map((file) => <Text key={file}>{file}</Text>)
-        ) : (
-          <Text>Aucun fichier trouvé</Text>
-        )}
-      </View>
     </>
   );
 }
