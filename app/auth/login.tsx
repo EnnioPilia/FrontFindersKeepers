@@ -1,9 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { useAuth } from "./authContext";
 import Toast from "react-native-toast-message";
+import { useAuth } from "../../src/context/authContext";
 
 export default function Login() {
   const router = useRouter();
@@ -14,10 +14,18 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fromRegister = Array.isArray(params.fromRegister) ? params.fromRegister[0] : params.fromRegister;
-  const fromReset = Array.isArray(params.fromReset) ? params.fromReset[0] : params.fromReset;
-  const fromForgotPassword = Array.isArray(params.fromForgotPassword) ? params.fromForgotPassword[0] : params.fromForgotPassword;
-  const forgotPasswordMessage = Array.isArray(params.message) ? params.message[0] : params.message;
+  const fromRegister = Array.isArray(params.fromRegister)
+    ? params.fromRegister[0]
+    : params.fromRegister;
+  const fromReset = Array.isArray(params.fromReset)
+    ? params.fromReset[0]
+    : params.fromReset;
+  const fromForgotPassword = Array.isArray(params.fromForgotPassword)
+    ? params.fromForgotPassword[0]
+    : params.fromForgotPassword;
+  const forgotPasswordMessage = Array.isArray(params.message)
+    ? params.message[0]
+    : params.message;
 
   useEffect(() => {
     if (fromRegister === "success") {
@@ -52,7 +60,8 @@ export default function Login() {
       Toast.show({
         type: "success",
         text1: "Lien envoyé",
-        text2: forgotPasswordMessage || "Un email de réinitialisation a été envoyé.",
+        text2:
+          forgotPasswordMessage || "Un email de réinitialisation a été envoyé.",
         position: "bottom",
         visibilityTime: 10000,
       });
@@ -61,7 +70,14 @@ export default function Login() {
       delete newParams.message;
       router.replace({ pathname: "/auth/login", params: newParams });
     }
-  }, [fromRegister, fromReset, fromForgotPassword, forgotPasswordMessage, params, router]);
+  }, [
+    fromRegister,
+    fromReset,
+    fromForgotPassword,
+    forgotPasswordMessage,
+    params,
+    router,
+  ]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -206,5 +222,3 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
-
-

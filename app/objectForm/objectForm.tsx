@@ -8,13 +8,58 @@ import {
   ScrollView,
   Alert,
   Pressable,
+  Image,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import * as Location from "expo-location";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as FileSystem from "expo-file-system";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { authFetch } from "../utils/authFetch";
+import authFetch from "../utils/authFetch";
+
+
+const photosDir = FileSystem.documentDirectory + "photos/";
+
+async function ensurePhotosDirExists() {
+  const dirInfo = await FileSystem.getInfoAsync(photosDir);
+  if (!dirInfo.exists) {
+    console.log("Création du dossier photos...");
+    await FileSystem.makeDirectoryAsync(photosDir, { intermediates: true });
+  }
+}
+
+async function savePhotoToPhotosDir(uri: string) {
+  try {
+    await ensurePhotosDirExists();
+    const parts = uri.split("/");
+    const filename = parts.length > 0 ? parts[parts.length - 1] : `photo_${Date.now()}.jpg`;
+    const dest = photosDir + filename;
+    console.log(`Copie de la photo de ${uri} vers ${dest}`);
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    return dest;
+  } catch (error) {
+    console.error("Erreur sauvegarde photo:", error);
+    Alert.alert("Erreur", "Impossible de sauvegarder la photo localement.");
+    return null;
+  }
+}
+
+async function compressImage(uri: string) {
+  try {
+    const manipulatedResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }], // largeur max 800 px
+      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return manipulatedResult.uri;
+  } catch (error) {
+    console.error("Erreur compression image :", error);
+    return uri;
+  }
+}
 
 export default function ObjectForm() {
   const router = useRouter();
@@ -25,6 +70,7 @@ export default function ObjectForm() {
   const [region, setRegion] = useState<Region | null>(null);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -57,23 +103,69 @@ export default function ObjectForm() {
     setLocation(coords);
   };
 
+  const takePhoto = async () => {
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    if (cameraStatus !== "granted") {
+      Alert.alert("Permission refusée", "L accès à la caméra est requis.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.1,
+      allowsEditing: true,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const compressedUri = await compressImage(result.assets[0].uri);
+      const localUri = await savePhotoToPhotosDir(compressedUri);
+      if (localUri) setPhotoUri(localUri);
+      else Alert.alert("Erreur", "Impossible de sauvegarder la photo localement.");
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission refusée", "L accès à la galerie est requis.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      allowsEditing: true,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const compressedUri = await compressImage(result.assets[0].uri);
+      const localUri = await savePhotoToPhotosDir(compressedUri);
+      if (localUri) setPhotoUri(localUri);
+      else Alert.alert("Erreur", "Impossible de sauvegarder la photo localement.");
+    }
+  };
+
   const handleSubmit = async () => {
     if (!type || !description || !location) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs requis.");
       return;
     }
 
+    const dataToSend = {
+      type,
+      description,
+      localisation: `${location.latitude},${location.longitude}`,
+      date: date.toISOString(),
+      photoPath: photoUri,
+      reclame: false,
+    };
+
+    console.log("Envoi des données :", dataToSend);
+
     try {
       const response = await authFetch("http://192.168.1.108:8080/objects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          description,
-          localisation: `${location.latitude},${location.longitude}`,
-          date: date.toISOString(),
-          reclame: false,
-        }),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
@@ -88,7 +180,9 @@ export default function ObjectForm() {
       setDescription("");
       setLocation(null);
       setDate(new Date());
+      setPhotoUri(null);
     } catch (error) {
+      console.error("Erreur réseau ou fetch :", error);
       Alert.alert("Erreur", "Impossible de contacter le serveur.");
     }
   };
@@ -97,7 +191,7 @@ export default function ObjectForm() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Déclarer un objet</Text>
 
-      <Text style={styles.label}>Type d'objet</Text>
+      <Text style={styles.label}>Type d objet</Text>
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={type} onValueChange={(val) => setType(val)}>
           <Picker.Item label="Sélectionner..." value="" />
@@ -114,6 +208,15 @@ export default function ObjectForm() {
         value={description}
         onChangeText={setDescription}
       />
+
+      <Text style={styles.label}>Photo</Text>
+      {photoUri ? (
+        <Image source={{ uri: photoUri }} style={styles.image} />
+      ) : (
+        <Text style={{ color: "#999", marginBottom: 10 }}>Aucune photo sélectionnée</Text>
+      )}
+      <Button title="📷 Prendre une photo" onPress={takePhoto} />
+      <Button title="🖼️ Choisir depuis la galerie" onPress={pickImage} />
 
       <Text style={styles.label}>Localisation</Text>
       {region ? (
@@ -159,7 +262,7 @@ export default function ObjectForm() {
       <Button title="Envoyer" onPress={handleSubmit} color="#2e86de" />
 
       <Pressable style={styles.backButton} onPress={() => router.replace("/")}>
-        <Text style={styles.backText}>← Retour à l'accueil</Text>
+        <Text style={styles.backText}>← Retour à l accueil</Text>
       </Pressable>
     </ScrollView>
   );
@@ -181,6 +284,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   pickerWrapper: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6 },
+  image: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
   map: {
     height: 300,
     width: "100%",
