@@ -8,7 +8,9 @@ interface ObjectItem {
   id: number;
   name: string | null;
   description: string;
-  photoPath: string | null;
+
+  photoPath: string;
+
   localisation: string;
   date: string;
   type: 'PERDU' | 'TROUVE';
@@ -116,14 +118,7 @@ export default function AllObjects() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
-      <View style={styles.photoList}>
-        <Text style={{ fontWeight: 'bold' }}>Fichiers photos locaux :</Text>
-        {photoFiles.length > 0 ? (
-          photoFiles.map((file) => <Text key={file}>{file}</Text>)
-        ) : (
-          <Text>Aucun fichier trouvé</Text>
-        )}
-      </View>
+
     </>
   );
 }

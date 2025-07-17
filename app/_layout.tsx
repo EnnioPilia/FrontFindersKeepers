@@ -8,9 +8,11 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Pressable } from "react-native";
+import { Pressable, View, StyleSheet } from "react-native";
 import Toast from "react-native-toast-message";
 import { useAuth } from "../src/context/authContext";
+
+import Footer from "../src/components/Footer"; // importe ton footer
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -36,35 +38,51 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        key={currentRoute}
-        screenOptions={{
-          headerShown: true,
-          headerRight: () =>
-            showLogout ? (
-              <Pressable onPress={handleLogout} style={{ marginRight: 15 }}>
-                <MaterialIcons
-                  name="logout"
-                  size={24}
-                  color={colorScheme === "dark" ? "white" : "black"}
-                />
-              </Pressable>
-            ) : null,
-          headerBackVisible: !isHome,
-          headerTitleStyle: {
-            color: colorScheme === "dark" ? "white" : "black", // Texte titre header
-          },
-          headerTintColor: colorScheme === "dark" ? "white" : "black", // Couleur des boutons back, etc.
-        }}
-      >
-        <Stack.Screen name="index" options={{ title: "Page d’accueil" }} />
-        <Stack.Screen
-          name="+not-found"
-          options={{ title: "Page non trouvée" }}
-        />
-      </Stack>
+      <View style={styles.container}>
+        <Stack
+          key={currentRoute}
+          screenOptions={{
+            headerShown: true,
+            headerRight: () =>
+              showLogout ? (
+                <Pressable onPress={handleLogout} style={{ marginRight: 15 }}>
+                  <MaterialIcons
+                    name="logout"
+                    size={24}
+                    color={colorScheme === "dark" ? "white" : "black"}
+                  />
+                </Pressable>
+              ) : null,
+            headerBackVisible: !isHome,
+            headerTitleStyle: {
+              color: colorScheme === "dark" ? "white" : "black",
+            },
+            headerTintColor: colorScheme === "dark" ? "white" : "black",
+          }}
+          style={styles.stack}
+        >
+          <Stack.Screen name="index" options={{ title: "Page d accueil" }} />
+          <Stack.Screen
+            name="+not-found"
+            options={{ title: "Page non trouvée" }}
+          />
+        </Stack>
+
+        {/* Footer fixe en bas */}
+        <Footer />
+      </View>
+
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <Toast />
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  stack: {
+    flex: 1,
+  },
+});
