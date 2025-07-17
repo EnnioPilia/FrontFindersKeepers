@@ -5,31 +5,25 @@ import {
   TextInput,
   Button,
   StyleSheet,
-  Image,
   ScrollView,
   Alert,
   Pressable,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import { authFetch } from "../utils/authFetch";
 
 export default function ObjectForm() {
   const router = useRouter();
 
-  const [type, setType] = useState<"perdu" | "trouve" | "">("");
+  const [type, setType] = useState<"PERDU" | "TROUVE" | "">("");
   const [description, setDescription] = useState("");
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Demander permission localisation
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -49,49 +43,41 @@ export default function ObjectForm() {
     })();
   }, []);
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
-
-  const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission refusée", "L’accès à la caméra est requis.");
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
-
-  const handleSubmit = () => {
-    if (!type || !description || !photoUri || !location) {
+  const handleSubmit = async () => {
+    if (!type || !description || !location) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs requis.");
       return;
     }
 
-    Alert.alert("Succès", "Formulaire soumis ✅");
+    try {
+      const response = await authFetch("http://192.168.1.108:8080/objects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          description,
+          localisation: `${location.latitude},${location.longitude}`,
+          date: date.toISOString(),
+          reclame: false,
+        }),
+      });
 
-    // TODO: envoyer à une API ici
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert("Erreur", `Erreur serveur: ${err}`);
+        return;
+      }
 
-    // Réinitialiser
-    setType("");
-    setDescription("");
-    setPhotoUri(null);
-    setLocation(null);
-    setDate(new Date());
+      Alert.alert("Succès", "Formulaire soumis ✅");
+
+      // Reset form
+      setType("");
+      setDescription("");
+      setLocation(null);
+      setDate(new Date());
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de contacter le serveur.");
+    }
   };
 
   return (
@@ -102,8 +88,8 @@ export default function ObjectForm() {
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={type} onValueChange={(val) => setType(val)}>
           <Picker.Item label="Sélectionner..." value="" />
-          <Picker.Item label="Objet perdu" value="perdu" />
-          <Picker.Item label="Objet trouvé" value="trouve" />
+          <Picker.Item label="Objet perdu" value="PERDU" />
+          <Picker.Item label="Objet trouvé" value="TROUVE" />
         </Picker>
       </View>
 
@@ -116,34 +102,17 @@ export default function ObjectForm() {
         onChangeText={setDescription}
       />
 
-      <Text style={styles.label}>Photo</Text>
-      {photoUri ? (
-        <Image source={{ uri: photoUri }} style={styles.image} />
-      ) : (
-        <View style={styles.imagePlaceholder}>
-          <Text style={{ color: "#999" }}>Aucune photo sélectionnée</Text>
-        </View>
-      )}
-      <View style={styles.row}>
-        <Button title="📷 Prendre une photo" onPress={takePhoto} />
-        <Button title="🖼️ Choisir depuis la galerie" onPress={pickImage} />
-      </View>
-
       <Text style={styles.label}>Localisation</Text>
       {location ? (
         <Text style={styles.locationText}>
-          Latitude : {location.latitude.toFixed(4)}, Longitude :{" "}
-          {location.longitude.toFixed(4)}
+          Latitude : {location.latitude.toFixed(4)}, Longitude : {location.longitude.toFixed(4)}
         </Text>
       ) : (
         <Text style={styles.locationText}>Localisation non disponible</Text>
       )}
 
       <Text style={styles.label}>Date de perte / découverte</Text>
-      <Button
-        title="Choisir une date"
-        onPress={() => setShowDatePicker(true)}
-      />
+      <Button title="Choisir une date" onPress={() => setShowDatePicker(true)} />
       {showDatePicker && (
         <DateTimePicker
           value={date}
@@ -155,9 +124,7 @@ export default function ObjectForm() {
           }}
         />
       )}
-      <Text style={styles.dateText}>
-        Date sélectionnée : {date.toLocaleDateString()}
-      </Text>
+      <Text style={styles.dateText}>Date sélectionnée : {date.toLocaleDateString()}</Text>
 
       <Button title="Envoyer" onPress={handleSubmit} color="#2e86de" />
 
@@ -184,27 +151,6 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   pickerWrapper: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6 },
-  image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-  },
-  imagePlaceholder: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
-    height: 150,
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-    marginBottom: 10,
-  },
   locationText: { marginTop: 8, fontStyle: "italic" },
   dateText: { marginVertical: 10 },
   backButton: { marginTop: 30, alignItems: "center" },

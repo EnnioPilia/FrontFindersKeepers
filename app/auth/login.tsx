@@ -14,7 +14,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Extraction stable des paramètres (string ou string[])
   const fromRegister = Array.isArray(params.fromRegister) ? params.fromRegister[0] : params.fromRegister;
   const fromReset = Array.isArray(params.fromReset) ? params.fromReset[0] : params.fromReset;
   const fromForgotPassword = Array.isArray(params.fromForgotPassword) ? params.fromForgotPassword[0] : params.fromForgotPassword;
@@ -78,10 +77,11 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://192.168.1.26:8080/auth/login", {
+      // const response = await fetch("http://192.168.1.26:8080/auth/login", {
+      const response = await fetch("http://192.168.1.108:8080/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        // credentials: "include",  <-- supprimé ici, pas de cookie
         body: JSON.stringify({ email, password }),
       });
 
@@ -206,3 +206,5 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
+
+
