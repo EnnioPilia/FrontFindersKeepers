@@ -20,7 +20,6 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import authFetch from "../utils/authFetch";
 
-
 const photosDir = FileSystem.documentDirectory + "photos/";
 
 async function ensurePhotosDirExists() {
@@ -51,7 +50,7 @@ async function compressImage(uri: string) {
   try {
     const manipulatedResult = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 800 } }], // largeur max 800 px
+      [{ resize: { width: 800 } }],
       { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
     );
     return manipulatedResult.uri;
@@ -64,6 +63,7 @@ async function compressImage(uri: string) {
 export default function ObjectForm() {
   const router = useRouter();
 
+  const [name, setName] = useState("");
   const [type, setType] = useState<"PERDU" | "TROUVE" | "">("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -145,12 +145,13 @@ export default function ObjectForm() {
   };
 
   const handleSubmit = async () => {
-    if (!type || !description || !location) {
+    if (!name || !type || !description || !location) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs requis.");
       return;
     }
 
     const dataToSend = {
+      name,
       type,
       description,
       localisation: `${location.latitude},${location.longitude}`,
@@ -176,11 +177,14 @@ export default function ObjectForm() {
 
       Alert.alert("Succès", "Formulaire soumis ✅");
 
+      setName("");
       setType("");
       setDescription("");
       setLocation(null);
       setDate(new Date());
       setPhotoUri(null);
+
+      router.push("/objectForm/allObjects");
     } catch (error) {
       console.error("Erreur réseau ou fetch :", error);
       Alert.alert("Erreur", "Impossible de contacter le serveur.");
@@ -190,6 +194,14 @@ export default function ObjectForm() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Déclarer un objet</Text>
+
+      <Text style={styles.label}>Nom de l objet</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Nom de l'objet"
+        value={name}
+        onChangeText={setName}
+      />
 
       <Text style={styles.label}>Type d objet</Text>
       <View style={styles.pickerWrapper}>
@@ -226,13 +238,7 @@ export default function ObjectForm() {
           region={region}
           onRegionChangeComplete={setRegion}
         >
-          {location && (
-            <Marker
-              coordinate={location}
-              draggable
-              onDragEnd={onMarkerDragEnd}
-            />
-          )}
+          {location && <Marker coordinate={location} draggable onDragEnd={onMarkerDragEnd} />}
         </MapView>
       ) : (
         <Text style={styles.locationText}>Chargement de la carte...</Text>
