@@ -43,7 +43,7 @@ export default function AllObjects() {
   useEffect(() => {
     const fetchObjects = async () => {
       try {
-        const response = await authFetch('http://192.168.1.108:8080/objects');
+        const response = await authFetch('http://192.168.1.26:8080/objects');
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText || 'Erreur inconnue');

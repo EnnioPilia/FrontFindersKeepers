@@ -163,7 +163,7 @@ export default function ObjectForm() {
     console.log("Envoi des données :", dataToSend);
 
     try {
-      const response = await authFetch("http://192.168.1.108:8080/objects", {
+      const response = await authFetch("http://192.168.1.26:8080/objects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataToSend),

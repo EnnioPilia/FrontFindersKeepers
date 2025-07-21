@@ -55,7 +55,7 @@ export default function ObjectDetails() {
 
     const fetchObjectDetails = async () => {
       try {
-        const response = await authFetch(`http://192.168.1.108:8080/objects/${id}`);
+        const response = await authFetch(`http://192.168.1.26:8080/objects/${id}`);
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText || 'Erreur inconnue');
@@ -111,7 +111,7 @@ export default function ObjectDetails() {
 
     try {
       const response = await authFetch(
-        'http://192.168.1.108:8080/conversation/conversation/getOrCreate',
+        'http://192.168.1.26:8080/conversation/conversation/getOrCreate',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

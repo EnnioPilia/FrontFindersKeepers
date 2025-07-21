@@ -74,7 +74,7 @@ export default function Conversation() {
     const fetchMessages = async () => {
       try {
         const response = await authFetch(
-          `http://192.168.1.108:8080/messages/conversation/${conversationId}`
+          `http://192.168.1.26:8080/messages/conversation/${conversationId}`
         );
         if (!response.ok) {
           const errorText = await response.text();
@@ -99,7 +99,7 @@ export default function Conversation() {
 
     try {
       const response = await authFetch(
-        `http://192.168.1.108:8080/messages/send/${conversationId}`,
+        `http://192.168.1.26:8080/messages/send/${conversationId}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
