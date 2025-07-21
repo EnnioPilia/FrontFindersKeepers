@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,9 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import authFetch from '../utils/authFetch';
+} from "react-native";
+import { useRouter } from "expo-router";
+import authFetch from "../utils/authFetch";
 
 interface User {
   nom: string;
@@ -24,7 +24,7 @@ interface Item {
   name: string;
   date: string;
   photoPath: string;
-  type: 'PERDU' | 'TROUVE';
+  type: "PERDU" | "TROUVE";
   reclame: boolean;
 }
 
@@ -33,25 +33,30 @@ export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [foundItems, setFoundItems] = useState<Item[]>([]);
   const [claimedItems, setClaimedItems] = useState<Item[]>([]);
-  const [tab, setTab] = useState<'found' | 'claimed'>('found');
+  const [tab, setTab] = useState<"found" | "claimed">("found");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUserAndItems() {
       try {
-        const userResponse = await authFetch('http://192.168.1.26:8080/users/me');
-        if (!userResponse.ok) throw new Error('Erreur récupération utilisateur');
+        const userResponse = await authFetch(
+          "http://192.168.1.26:8080/users/me"
+        );
+        if (!userResponse.ok)
+          throw new Error("Erreur récupération utilisateur");
         const userData = await userResponse.json();
         setUser(userData);
 
-        const objectsResponse = await authFetch('http://192.168.1.26:8080/objects/me');
-        if (!objectsResponse.ok) throw new Error('Erreur récupération objets');
+        const objectsResponse = await authFetch(
+          "http://192.168.1.26:8080/objects/me"
+        );
+        if (!objectsResponse.ok) throw new Error("Erreur récupération objets");
         const objectsData = await objectsResponse.json();
 
         setFoundItems(objectsData.filter((obj: Item) => !obj.reclame));
         setClaimedItems(objectsData.filter((obj: Item) => obj.reclame));
       } catch (error: any) {
-        Alert.alert('Erreur', error.message);
+        Alert.alert("Erreur", error.message);
       } finally {
         setLoading(false);
       }
@@ -59,18 +64,32 @@ export default function Profile() {
     fetchUserAndItems();
   }, []);
 
-  const renderItem = ({ item }: { item: Item }) => (
-    <Pressable
-      style={styles.itemRow}
-      onPress={() => router.push(`/objectForm/objectDetails?id=${item.id}`)}
-    >
-      <Image source={{ uri: item.photoPath }} style={styles.itemImage} />
-      <View style={{ marginLeft: 12 }}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemDate}>Found on {item.date}</Text>
-      </View>
-    </Pressable>
-  );
+  const renderItem = ({ item }: { item: Item }) => {
+    const dateLabel = item.type === "PERDU" ? "Perdu le" : "Trouvé le";
+
+    return (
+      <Pressable
+        style={styles.itemRow}
+        onPress={() => router.push(`/objectForm/objectDetails?id=${item.id}`)}
+      >
+        <Image source={{ uri: item.photoPath }} style={styles.itemImage} />
+        <View style={{ marginLeft: 12 }}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.itemDate}>
+            {dateLabel} {item.date}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
+
+  const goToEditProfile = () => {
+    router.push("/editProfile"); // adapte le chemin si besoin
+  };
+
+  const goToMentionLegal = () => {
+    router.push("/mentionLegal"); // adapte le chemin si besoin
+  };
 
   if (loading) {
     return (
@@ -89,40 +108,47 @@ export default function Profile() {
   }
 
   // Image générique Unsplash portrait
-  const avatarUri = 'https://images.unsplash.com/vector-1738312097380-45562da00459?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+  const avatarUri =
+    "https://images.unsplash.com/vector-1738312097380-45562da00459?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Image source={{ uri: avatarUri }} style={styles.avatar} />
-        <Text style={styles.name}>{user.prenom} {user.nom}</Text>
+        <Text style={styles.name}>
+          {user.prenom} {user.nom}
+        </Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabs}>
         <Pressable
-          style={[styles.tabButton, tab === 'found' && styles.activeTab]}
-          onPress={() => setTab('found')}
+          style={[styles.tabButton, tab === "found" && styles.activeTab]}
+          onPress={() => setTab("found")}
         >
-          <Text style={[styles.tabText, tab === 'found' && styles.activeTabText]}>
-            Found Items
+          <Text
+            style={[styles.tabText, tab === "found" && styles.activeTabText]}
+          >
+            Vos objets
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.tabButton, tab === 'claimed' && styles.activeTab]}
-          onPress={() => setTab('claimed')}
+          style={[styles.tabButton, tab === "claimed" && styles.activeTab]}
+          onPress={() => setTab("claimed")}
         >
-          <Text style={[styles.tabText, tab === 'claimed' && styles.activeTabText]}>
-            Claimed Items
+          <Text
+            style={[styles.tabText, tab === "claimed" && styles.activeTabText]}
+          >
+            Archivés
           </Text>
         </Pressable>
       </View>
 
       {/* List */}
       <View style={styles.listContainer}>
-        {tab === 'found' ? (
+        {tab === "found" ? (
           <FlatList
             data={foundItems}
             keyExtractor={(item) => item.id.toString()}
@@ -141,14 +167,11 @@ export default function Profile() {
 
       {/* Account */}
       <View style={styles.accountSection}>
-        <Pressable style={styles.accountRow}>
-          <Text style={styles.accountText}>👤 Edit Profile</Text>
+        <Pressable onPress={() => router.push("/editProfile/editProfile")}>
+          <Text style={styles.accountText}>👤 Modifier le profil</Text>
         </Pressable>
-        <Pressable style={styles.accountRow}>
-          <Text style={styles.accountText}>⚙️ Settings</Text>
-        </Pressable>
-        <Pressable style={styles.accountRow}>
-          <Text style={styles.accountText}>➡️ Log Out</Text>
+        <Pressable onPress={() => router.push("/legal/legal")}>
+          <Text style={styles.accountText}>⚙️ Mentions légales</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -158,63 +181,63 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { alignItems: 'center', marginBottom: 24 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: { alignItems: "center", marginBottom: 24 },
   avatar: { width: 96, height: 96, borderRadius: 48, marginBottom: 12 },
-  name: { fontWeight: '700', fontSize: 22, marginBottom: 4 },
-  email: { color: '#6e7e91', fontSize: 14 },
+  name: { fontWeight: "700", fontSize: 22, marginBottom: 4 },
+  email: { color: "#6e7e91", fontSize: 14 },
 
   tabs: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     marginBottom: 16,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   tabText: {
-    fontWeight: '600',
-    color: '#6e7e91',
+    fontWeight: "600",
+    color: "#6e7e91",
   },
   activeTab: {
     borderBottomWidth: 3,
-    borderColor: '#222',
+    borderColor: "#222",
   },
   activeTabText: {
-    color: '#222',
+    color: "#222",
   },
 
   listContainer: {
     marginBottom: 32,
   },
   itemRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   itemImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   itemDate: {
-    color: '#6e7e91',
+    color: "#6e7e91",
     marginTop: 4,
   },
 
   accountSection: {
     borderTopWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
     paddingTop: 16,
   },
   accountRow: {
@@ -222,6 +245,6 @@ const styles = StyleSheet.create({
   },
   accountText: {
     fontSize: 16,
-    color: '#222',
+    color: "#222",
   },
 });

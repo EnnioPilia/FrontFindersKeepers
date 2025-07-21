@@ -12,6 +12,7 @@ interface ObjectItem {
   localisation: string;
   date: string;
   type: 'PERDU' | 'TROUVE';
+  reclame?: boolean; // ajout pour filtrage
 }
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
@@ -48,7 +49,9 @@ export default function AllObjects() {
         }
         const data = await response.json();
         console.log('Données reçues :', data);
-        setObjects(data);
+        // Filtrer les objets non réclamés
+        const filteredObjects = data.filter((obj: ObjectItem) => !obj.reclame);
+        setObjects(filteredObjects);
       } catch (err) {
         console.error('Erreur lors du chargement :', err);
       } finally {
