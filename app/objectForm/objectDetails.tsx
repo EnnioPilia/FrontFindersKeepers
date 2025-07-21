@@ -13,6 +13,8 @@ import {
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { jwtDecode } from 'jwt-decode';
 import authFetch from '../utils/authFetch';
 
 interface ObjectDetail {
@@ -40,13 +42,28 @@ export default function ObjectDetails() {
   const [object, setObject] = useState<ObjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoExists, setPhotoExists] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
 
-  // Ne plus passer currentUserId, le backend récupère l'utilisateur connecté via JWT token
+  useEffect(() => {
+    const getUserEmailFromToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
+        const decoded = jwtDecode<any>(token);
+        if (decoded.sub && typeof decoded.sub === 'string') {
+          setCurrentUserEmail(decoded.sub);
+        }
+      } catch {
+        // ignore silently
+      }
+    };
+    getUserEmailFromToken();
+  }, []);
 
   useEffect(() => {
     if (!id) {
-      console.log('⚠️ Aucun id fourni, retour en arrière.');
 
       Alert.alert('Erreur', "Aucun identifiant d'objet fourni.");
       router.back();
@@ -80,30 +97,48 @@ export default function ObjectDetails() {
     fetchObjectDetails();
   }, [id]);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2e86de" />
-      </View>
-    );
-  }
+  const isOwner = object && currentUserEmail && object.owner?.email === currentUserEmail;
 
-  if (!object) {
-    return (
-      <View style={styles.center}>
-        <Text>Détails indisponibles.</Text>
-      </View>
+  const handleMarkAsClaimed = () => {
+    if (!object) return;
+
+    Alert.alert(
+      'Confirmation',
+      "Voulez-vous marquer cet objet comme réclamé ?",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              const response = await authFetch(`http://192.168.1.26:8080/objects/${object.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reclame: true }),
+              });
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Erreur lors de la mise à jour');
+              }
+              setObject((prev) => (prev ? { ...prev, reclame: true } : prev));
+              Alert.alert('Succès', "Objet marqué comme réclamé.");
+            } catch (error: any) {
+              Alert.alert('Erreur', `Impossible de mettre à jour : ${error.message}`);
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
     );
-  }
+  };
 
   const handleContact = async () => {
-    if (!object.owner || !object.owner.id) {
+    if (!object?.owner?.email) {
       Alert.alert('Erreur', "Identifiant du propriétaire non disponible");
       return;
     }
-
-    // Optionnel: vérification côté front que l’utilisateur ne contacte pas lui-même,
-    // à faire seulement si tu peux récupérer l’ID utilisateur connecté
 
     const conversationPayload = {
       user2Id: object.owner.id,
@@ -136,6 +171,23 @@ export default function ObjectDetails() {
   };
 
 
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2e86de" />
+      </View>
+    );
+  }
+
+  if (!object) {
+    return (
+      <View style={styles.center}>
+        <Text>Détails indisponibles.</Text>
+      </View>
+    );
+  }
+
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {photoExists ? (
@@ -162,9 +214,24 @@ export default function ObjectDetails() {
       <Text style={styles.label}>Réclamé :</Text>
       <Text style={styles.meta}>{object.reclame ? 'Oui' : 'Non'}</Text>
 
-      <View style={styles.contactButton}>
-        <Button title="Contacter" onPress={handleContact} color="#2e86de" />
-      </View>
+      {/* Bouton Contacter, visible uniquement si ce n’est pas le propriétaire */}
+      {!isOwner && (
+        <View style={styles.contactButton}>
+          <Button title="Contacter" onPress={handleContact} color="#2e86de" />
+        </View>
+      )}
+
+      {/* Bouton Mettre fin à la conversation, visible uniquement pour le propriétaire si non réclamé */}
+      {isOwner && !object.reclame && (
+        <View style={{ marginTop: 20 }}>
+          <Button
+            title={updating ? "Mise à jour..." : "Mettre fin à la conversation"}
+            color="#d9534f"
+            onPress={handleMarkAsClaimed}
+            disabled={updating}
+          />
+        </View>
+      )}
 
     </ScrollView>
   );

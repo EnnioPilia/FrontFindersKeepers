@@ -10,30 +10,41 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import authFetch from '../utils/authFetch';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 interface Message {
   id: number;
   sender: {
     email: string;
-    // autres champs si besoin
   };
   contenu: string;
   dateEnvoi: string;
 }
 
+interface Objet {
+  id: number;
+  owner: {
+    email: string;
+    // autres champs si besoin
+  };
+  // autres champs si besoin
+}
+
 export default function Conversation() {
-  const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
+  const { conversationId, objectId } = useLocalSearchParams<{ conversationId: string; objectId: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [objet, setObjet] = useState<Objet | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const getUserEmailFromToken = async () => {
@@ -44,17 +55,13 @@ export default function Conversation() {
           return;
         }
         const decoded = jwtDecode<any>(token);
-        console.log('Token décodé:', decoded);
-
         const userEmail = decoded.sub;
         if (!userEmail || typeof userEmail !== 'string') {
           Alert.alert('Erreur', "L'email utilisateur n'est pas présent dans le token.");
           return;
         }
-
         setCurrentUserEmail(userEmail);
       } catch (error: any) {
-        console.error('Erreur décodage token:', error);
         Alert.alert('Erreur', 'Impossible de décoder le token. Veuillez vous reconnecter.');
       }
     };
@@ -62,68 +69,91 @@ export default function Conversation() {
   }, []);
 
   useEffect(() => {
-    if (!conversationId) {
-      Alert.alert('Erreur', 'Aucun ID de conversation fourni.');
-      return;
-    }
-    if (currentUserEmail === null) {
-      // On attend d'avoir l'email utilisateur avant de charger les messages
-      return;
-    }
+    if (!conversationId || currentUserEmail === null) return;
 
-    const fetchMessages = async () => {
+    const fetchMessagesAndObject = async () => {
+      setLoading(true);
       try {
-        const response = await authFetch(
-          `http://192.168.1.26:8080/messages/conversation/${conversationId}`
-        );
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Erreur inconnue lors du chargement des messages.');
+        const resMessages = await authFetch(`http://192.168.1.26:8080/messages/conversation/${conversationId}`);
+        if (!resMessages.ok) {
+          throw new Error(await resMessages.text());
         }
-        const data = await response.json();
-        setMessages(data);
+        const messagesData = await resMessages.json();
+        setMessages(messagesData);
+
+        if (objectId) {
+          const resObject = await authFetch(`http://192.168.1.26:8080/objects/${objectId}`);
+          if (!resObject.ok) {
+            throw new Error(await resObject.text());
+          }
+          const objetData = await resObject.json();
+          setObjet(objetData);
+        }
       } catch (error: any) {
-        Alert.alert('Erreur', `Impossible de charger les messages : ${error.message}`);
+        Alert.alert('Erreur', `Chargement impossible : ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMessages();
-  }, [conversationId, currentUserEmail]);
+    fetchMessagesAndObject();
+  }, [conversationId, currentUserEmail, objectId]);
 
   const sendMessage = async () => {
     if (newMessage.trim().length === 0) return;
 
     setSending(true);
-
     try {
-      const response = await authFetch(
-        `http://192.168.1.26:8080/messages/send/${conversationId}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contenu: newMessage.trim(), // senderId géré côté backend via token
-          }),
-        }
-      );
+      const response = await authFetch(`http://192.168.1.26:8080/messages/send/${conversationId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contenu: newMessage.trim() }),
+      });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Erreur inconnue lors de l’envoi du message.');
+        throw new Error(await response.text());
       }
 
       const savedMessage = await response.json();
       setMessages((prev) => [...prev, savedMessage]);
       setNewMessage('');
-
       flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error: any) {
-      Alert.alert('Erreur', `Impossible d’envoyer le message : ${error.message}`);
+      Alert.alert('Erreur', `Impossible d'envoyer le message : ${error.message}`);
     } finally {
       setSending(false);
     }
+  };
+
+  const endConversation = async () => {
+    if (!objet) return;
+    Alert.alert(
+      'Confirmation',
+      "Voulez-vous mettre fin à la conversation et marquer l'objet comme réclamé ?",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            try {
+              const response = await authFetch(`http://192.168.1.26:8080/objects/${objet.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reclame: true }),
+              });
+
+              if (!response.ok) {
+                throw new Error(await response.text());
+              }
+
+              Alert.alert('Succès', "L'objet a été marqué comme réclamé.");
+            } catch (error: any) {
+              Alert.alert('Erreur', `Impossible de mettre fin à la conversation : ${error.message}`);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading || currentUserEmail === null) {
@@ -134,36 +164,66 @@ export default function Conversation() {
     );
   }
 
+  const isOwner = objet && objet.owner?.email === currentUserEmail;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
+      {isOwner && (
+        <View style={styles.endConversationContainer}>
+          <Button title="Mettre fin à la conversation" color="#d9534f" onPress={endConversation} />
+        </View>
+      )}
+
       <FlatList
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
           const isMine = item.sender.email === currentUserEmail;
+
+          const handleDelete = () => {
+            Alert.alert(
+              'Confirmation',
+              'Voulez-vous vraiment supprimer ce message ?',
+              [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                  text: 'Supprimer',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      const response = await authFetch(`http://192.168.1.26:8080/messages/${item.id}`, {
+                        method: 'DELETE',
+                      });
+                      if (!response.ok) {
+                        throw new Error(await response.text());
+                      }
+                      setMessages((prev) => prev.filter((m) => m.id !== item.id));
+                    } catch (error: any) {
+                      Alert.alert('Erreur', `Impossible de supprimer le message : ${error.message}`);
+                    }
+                  },
+                },
+              ],
+              { cancelable: true }
+            );
+          };
+
           return (
-            <View
-              style={[
-                styles.messageContainer,
-                isMine ? styles.myMessage : styles.theirMessage,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  isMine ? { color: '#fff' } : { color: '#000' },
-                ]}
-              >
+            <View style={[styles.messageContainer, isMine ? styles.myMessage : styles.theirMessage]}>
+              <Text style={[styles.messageText, isMine ? { color: '#fff' } : { color: '#000' }]}>
                 {item.contenu}
               </Text>
-              <Text style={styles.messageDate}>
-                {new Date(item.dateEnvoi).toLocaleTimeString()}
-              </Text>
+              <Text style={styles.messageDate}>{new Date(item.dateEnvoi).toLocaleTimeString()}</Text>
+              {isMine && (
+                <Pressable onPress={handleDelete} style={styles.deleteIcon}>
+                  <MaterialIcons name="delete" size={20} color="#ff5555" />
+                </Pressable>
+              )}
             </View>
           );
         }}
@@ -193,6 +253,8 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     borderRadius: 10,
     padding: 10,
+    position: 'relative',
+    paddingRight: 30,
   },
   myMessage: {
     backgroundColor: '#2e86de',
@@ -210,6 +272,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
     textAlign: 'right',
+  },
+  deleteIcon: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    padding: 4,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -229,5 +297,8 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     marginRight: 10,
     color: '#000',
+  },
+  endConversationContainer: {
+    margin: 10,
   },
 });
