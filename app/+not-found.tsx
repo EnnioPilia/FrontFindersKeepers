@@ -9,7 +9,7 @@ export default function NotFound() {
       <Stack.Screen options={{ title: 'Page non trouvée' }} />
       <View style={styles.container}>
         <Text style={styles.title}>404 - Page non trouvée</Text>
-        <Pressable style={styles.button} onPress={() => router.push('/')}>
+        <Pressable style={styles.button} onPress={() => router.push('/home/home')}>
           <Text style={styles.buttonText}>Retour à l'accueil</Text>
         </Pressable>
       </View>
