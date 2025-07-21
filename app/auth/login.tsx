@@ -93,8 +93,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // const response = await fetch("http://192.168.1.26:8080/auth/login", {
-      const response = await fetch("http://192.168.1.108:8080/auth/login", {
+      const response = await fetch("http://192.168.1.26:8080/auth/login", {
+      // const response = await fetch("http://192.168.1.108:8080/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // credentials: "include",  <-- supprimé ici, pas de cookie

@@ -53,7 +53,7 @@ export default function ConversationsList() {
 
     const fetchConversations = async () => {
       try {
-        const response = await authFetch('http://192.168.1.108:8080/conversation/user');
+        const response = await authFetch('http://192.168.1.26:8080/conversation/user');
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText || 'Erreur lors du chargement');

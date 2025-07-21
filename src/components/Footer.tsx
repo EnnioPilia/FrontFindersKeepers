@@ -1,27 +1,46 @@
-import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import React from "react";
+import { View, StyleSheet, Pressable } from "react-native";
+import { useRouter } from "expo-router";
+import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
 
 export default function Footer() {
   const router = useRouter();
 
   return (
     <View style={styles.footer}>
-      <Pressable style={styles.iconButton} onPress={() => router.push('/home/home')}>
+      <Pressable
+        style={styles.iconButton}
+        onPress={() => router.push("/home/home")}
+      >
         <MaterialIcons name="home" size={28} color="#fff" />
       </Pressable>
 
-      <Pressable style={styles.iconButton} onPress={() => router.push('/listConversation/listConversation')}>
+      <Pressable
+        style={styles.iconButton}
+        onPress={() => router.push("/listConversation/listConversation")}
+      >
         <FontAwesome name="comments" size={28} color="#fff" />
       </Pressable>
 
-      <Pressable style={styles.iconButton} onPress={() => router.push('/objectForm/objectForm')}>
+      <Pressable
+        style={styles.iconButton}
+        onPress={() => router.push("/objectForm/objectForm")}
+      >
         <MaterialIcons name="add" size={28} color="#fff" />
       </Pressable>
 
-      <Pressable style={styles.iconButton} onPress={() => router.push('/objectForm/allObjects')}>
+      <Pressable
+        style={styles.iconButton}
+        onPress={() => router.push("/objectForm/allObjects")}
+      >
         <MaterialIcons name="list" size={28} color="#fff" />
+      </Pressable>
+
+      <Pressable
+        style={styles.iconButton}
+        onPress={() => router.push("/profle/profile")}
+      >
+        <MaterialIcons name="person" size={28} color="#fff" />
       </Pressable>
     </View>
   );
@@ -30,10 +49,10 @@ export default function Footer() {
 const styles = StyleSheet.create({
   footer: {
     height: 60,
-    backgroundColor: '#2e86de',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    backgroundColor: "#2e86de",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
   iconButton: {
     padding: 10,
