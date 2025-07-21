@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import {
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   Alert,
   Button,
 } from 'react-native';
+
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,12 +26,14 @@ interface ObjectDetail {
   date: string;
   type: 'PERDU' | 'TROUVE';
   reclame: boolean;
+
   owner: {
     id: number;
     nom: string;
     prenom: string;
     email: string;
   } | null;
+
 }
 
 export default function ObjectDetails() {
@@ -40,6 +44,7 @@ export default function ObjectDetails() {
   const [photoExists, setPhotoExists] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+
 
   useEffect(() => {
     const getUserEmailFromToken = async () => {
@@ -59,6 +64,7 @@ export default function ObjectDetails() {
 
   useEffect(() => {
     if (!id) {
+
       Alert.alert('Erreur', "Aucun identifiant d'objet fourni.");
       router.back();
       return;
@@ -79,7 +85,9 @@ export default function ObjectDetails() {
           setPhotoExists(info.exists);
         }
       } catch (error) {
+
         Alert.alert('Erreur', "Impossible de charger les détails de l’objet.");
+
         router.back();
       } finally {
         setLoading(false);
@@ -162,6 +170,7 @@ export default function ObjectDetails() {
     }
   };
 
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -178,6 +187,7 @@ export default function ObjectDetails() {
     );
   }
 
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {photoExists ? (
@@ -187,6 +197,7 @@ export default function ObjectDetails() {
           <Text style={{ color: '#999' }}>Pas d’image disponible</Text>
         </View>
       )}
+
 
       <Text style={styles.title}>{object.name ?? 'Sans nom'}</Text>
       <Text style={styles.type}>{object.type}</Text>
@@ -221,13 +232,16 @@ export default function ObjectDetails() {
           />
         </View>
       )}
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: { padding: 20, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
   image: {
     width: '100%',
     height: 250,
@@ -235,6 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
     marginBottom: 20,
   },
+
   noImage: { justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
   type: { fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#2e86de' },
@@ -242,4 +257,5 @@ const styles = StyleSheet.create({
   description: { fontSize: 16, color: '#333' },
   meta: { fontSize: 14, color: '#666' },
   contactButton: { marginTop: 30 },
+
 });

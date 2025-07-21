@@ -8,7 +8,9 @@ interface ObjectItem {
   id: number;
   name: string | null;
   description: string;
+
   photoPath: string;
+
   localisation: string;
   date: string;
   type: 'PERDU' | 'TROUVE';
@@ -119,6 +121,7 @@ export default function AllObjects() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
+
     </>
   );
 }
