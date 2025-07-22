@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 
 interface User {
   id: number;
@@ -19,6 +20,8 @@ interface User {
 }
 
 export default function EditProfile() {
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -122,6 +125,10 @@ export default function EditProfile() {
       const updatedUser: User = await response.json();
       setUser(updatedUser);
       Alert.alert("Succès", "Profil mis à jour avec succès.");
+
+      // Redirection vers la page Profile
+      router.push("/profile/profile");
+
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       Alert.alert("Erreur", "Une erreur est survenue lors de la mise à jour.");
