@@ -38,7 +38,7 @@ export default function Footer() {
 
       <Pressable
         style={styles.iconButton}
-        onPress={() => router.push("/profle/profile")}
+        onPress={() => router.push("/profile/profile")}
       >
         <MaterialIcons name="person" size={28} color="#fff" />
       </Pressable>

@@ -83,14 +83,6 @@ export default function Profile() {
     );
   };
 
-  const goToEditProfile = () => {
-    router.push("/editProfile"); // adapte le chemin si besoin
-  };
-
-  const goToMentionLegal = () => {
-    router.push("/mentionLegal"); // adapte le chemin si besoin
-  };
-
   if (loading) {
     return (
       <View style={styles.center}>
@@ -167,10 +159,16 @@ export default function Profile() {
 
       {/* Account */}
       <View style={styles.accountSection}>
-        <Pressable onPress={() => router.push("/editProfile/editProfile")}>
+        <Pressable
+          style={styles.accountRow}
+          onPress={() => router.push("/profile/editProfile")}
+        >
           <Text style={styles.accountText}>👤 Modifier le profil</Text>
         </Pressable>
-        <Pressable onPress={() => router.push("/legal/legal")}>
+        <Pressable
+          style={styles.accountRow}
+          onPress={() => router.push("/legal/legal")}
+        >
           <Text style={styles.accountText}>⚙️ Mentions légales</Text>
         </Pressable>
       </View>
@@ -241,10 +239,16 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   accountRow: {
-    paddingVertical: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 12,
+    marginVertical: 6,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
   },
   accountText: {
-    fontSize: 16,
+    fontSize: 18,
     color: "#222",
+    textAlign: "center",
+    fontWeight: "600",
   },
 });
