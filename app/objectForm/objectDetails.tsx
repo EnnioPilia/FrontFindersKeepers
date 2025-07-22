@@ -15,9 +15,10 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import authFetch from '../utils/authFetch';
 import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 interface ObjectDetail {
   id: number;
@@ -47,6 +48,8 @@ export default function ObjectDetails() {
   const [loading, setLoading] = useState(true);
   const [photoExists, setPhotoExists] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [updating, setUpdating] = useState(false);
 
 
   useEffect(() => {
@@ -100,7 +103,107 @@ export default function ObjectDetails() {
     fetchObjectDetails();
   }, [id]);
 
-  const isOwner = object && currentUserEmail && object.owner?.email === currentUserEmail;
+  let latitude: number | null = null;
+  let longitude: number | null = null;
+  if (object?.localisation) {
+    const coords = object.localisation.split(',');
+    if (coords.length === 2) {
+      const lat = parseFloat(coords[0].trim());
+      const lng = parseFloat(coords[1].trim());
+      if (!isNaN(lat) && !isNaN(lng)) {
+        latitude = lat;
+        longitude = lng;
+      }
+    }
+  }
+
+  useEffect(() => {
+    const calcDistance = async () => {
+      if (latitude === null || longitude === null) return;
+
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn('Permission géolocalisation refusée');
+          return;
+        }
+        const location = await Location.getCurrentPositionAsync({});
+        const userLat = location.coords.latitude;
+        const userLng = location.coords.longitude;
+
+        const dist = getDistanceFromLatLonInKm(userLat, userLng, latitude, longitude);
+        setDistanceKm(dist);
+      } catch (error) {
+        console.warn('Erreur géolocalisation', error);
+      }
+    };
+    calcDistance();
+  }, [latitude, longitude]);
+
+  function getDistanceFromLatLonInKm(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
+    const R = 6371;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+
+  // Correction : comparer emails trim() et en lowercase
+  const isOwner =
+    object &&
+    currentUserEmail &&
+    object.owner &&
+    object.owner.email.trim().toLowerCase() === currentUserEmail.trim().toLowerCase();
+
+  const handleArchiveObject = () => {
+    if (!object) return;
+
+    Alert.alert(
+      'Confirmation',
+      'Voulez-vous archiver cet objet ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            try {
+              setUpdating(true);
+              const response = await authFetch(`http://192.168.1.26:8080/objects/${object.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reclame: true }),
+              });
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Erreur lors de la mise à jour');
+              }
+              setObject((prev) => (prev ? { ...prev, reclame: true } : prev));
+              Alert.alert('Succès', 'Objet archivé.');
+            } catch (error: any) {
+              Alert.alert('Erreur', `Impossible d’archiver : ${error.message}`);
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleContact = async () => {
     if (!object?.owner?.email) {
@@ -155,20 +258,6 @@ export default function ObjectDetails() {
     );
   }
 
-  let latitude: number | null = null;
-  let longitude: number | null = null;
-  if (object.localisation) {
-    const coords = object.localisation.split(',');
-    if (coords.length === 2) {
-      const lat = parseFloat(coords[0].trim());
-      const lng = parseFloat(coords[1].trim());
-      if (!isNaN(lat) && !isNaN(lng)) {
-        latitude = lat;
-        longitude = lng;
-      }
-    }
-  }
-
   const formattedDate = new Date(object.date).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
@@ -213,6 +302,12 @@ export default function ObjectDetails() {
           <Text style={styles.detailValue}>{formattedDate}</Text>
         </View>
 
+        {distanceKm !== null && (
+          <Text style={styles.distanceText}>
+            Distance de l'objet : {distanceKm.toFixed(2)} km
+          </Text>
+        )}
+
         {latitude !== null && longitude !== null && (
           <MapView
             style={styles.map}
@@ -226,6 +321,26 @@ export default function ObjectDetails() {
             <Marker coordinate={{ latitude, longitude }} />
           </MapView>
         )}
+
+        <View style={{ marginTop: 20 }}>
+          {!isOwner && (
+            <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
+              <Text style={styles.contactButtonText}>Contacter</Text>
+            </TouchableOpacity>
+          )}
+
+          {isOwner && !object?.reclame && (
+            <TouchableOpacity
+              style={[styles.archiveButton, styles.contactButton]}
+              onPress={handleArchiveObject}
+              disabled={updating}
+            >
+              <Text style={styles.contactButtonText}>
+                {updating ? 'Archivage...' : 'Archiver l’objet'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {object.owner && (
           <>
@@ -253,12 +368,6 @@ export default function ObjectDetails() {
             </View>
           </>
         )}
-
-        {!isOwner && (
-          <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
-            <Text style={styles.contactButtonText}>Contacter</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
     </ScrollView>
@@ -272,11 +381,10 @@ const styles = StyleSheet.create({
 
   image: {
     width: Dimensions.get('window').width,
-    height: Dimensions.get('window').width, // carré
+    height: Dimensions.get('window').width,
     borderRadius: 0,
     backgroundColor: '#eee',
     marginBottom: 20,
-    // marginTop supprimé ici
   },
   noImage: {
     justifyContent: 'center',
@@ -340,6 +448,13 @@ const styles = StyleSheet.create({
     maxWidth: '60%',
     textAlign: 'right',
   },
+  distanceText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 15,
+    marginBottom: 8,
+    color: '#333',
+  },
   reportedBy: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -368,6 +483,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
+  archiveButton: {
+    backgroundColor: '#d9534f',
+  },
   contactButtonText: {
     color: '#fff',
     fontSize: 16,
@@ -376,7 +494,7 @@ const styles = StyleSheet.create({
   map: {
     height: 180,
     borderRadius: 15,
-    marginTop: 15,
+    marginTop: 10,
     marginBottom: 30,
   },
   center: {

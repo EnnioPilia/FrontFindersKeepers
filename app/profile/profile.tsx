@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import authFetch from "../utils/authFetch";
+import { Swipeable } from "react-native-gesture-handler";
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface User {
   nom: string;
@@ -64,22 +66,84 @@ export default function Profile() {
     fetchUserAndItems();
   }, []);
 
+  const deleteItem = async (id: number) => {
+    try {
+      setLoading(true);
+      const response = await authFetch(`http://192.168.1.26:8080/objects/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error("Erreur suppression objet");
+
+      if (tab === "found") {
+        setFoundItems((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        setClaimedItems((prev) => prev.filter((item) => item.id !== id));
+      }
+    } catch (error: any) {
+      Alert.alert("Erreur", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderRightActions = (
+    progress: any,
+    dragX: any,
+    onDelete: () => void
+  ) => {
+    return (
+      <Pressable
+        onPress={onDelete}
+        style={{
+          backgroundColor: "red",
+          justifyContent: "center",
+          alignItems: "center",
+          width: 80,
+          height: "100%",
+        }}
+      >
+        <MaterialIcons name="delete" size={32} color="#fff" />
+      </Pressable>
+    );
+  };
+
   const renderItem = ({ item }: { item: Item }) => {
     const dateLabel = item.type === "PERDU" ? "Perdu le" : "Trouvé le";
 
+    const handleDelete = () => {
+      Alert.alert(
+        "Confirmation",
+        `Voulez-vous vraiment supprimer "${item.name}" ?`,
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Supprimer",
+            style: "destructive",
+            onPress: () => deleteItem(item.id),
+          },
+        ]
+      );
+    };
+
     return (
-      <Pressable
-        style={styles.itemRow}
-        onPress={() => router.push(`/objectForm/objectDetails?id=${item.id}`)}
+      <Swipeable
+        renderRightActions={(progress, dragX) =>
+          renderRightActions(progress, dragX, handleDelete)
+        }
       >
-        <Image source={{ uri: item.photoPath }} style={styles.itemImage} />
-        <View style={{ marginLeft: 12 }}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={styles.itemDate}>
-            {dateLabel} {item.date}
-          </Text>
-        </View>
-      </Pressable>
+        <Pressable
+          style={styles.itemRow}
+          onPress={() => router.push(`/objectForm/objectDetails?id=${item.id}`)}
+        >
+          <Image source={{ uri: item.photoPath }} style={styles.itemImage} />
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemDate}>
+              {dateLabel} {item.date}
+            </Text>
+          </View>
+        </Pressable>
+      </Swipeable>
     );
   };
 
@@ -217,6 +281,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 16,
     alignItems: "center",
+    backgroundColor: "#fff",
   },
   itemImage: {
     width: 60,

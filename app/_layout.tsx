@@ -11,8 +11,9 @@ import { useEffect, useState } from "react";
 import { Pressable, View, StyleSheet } from "react-native";
 import Toast from "react-native-toast-message";
 import { useAuth } from "../src/context/authContext";
-
 import Footer from "../src/components/Footer";
+
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 function BackToHomeButton() {
   const router = useRouter();
@@ -49,82 +50,84 @@ export default function RootLayout() {
   const showLogout = !excludedRoutes.includes(currentRoute);
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <View style={styles.container}>
-        <Stack
-          key={currentRoute}
-          screenOptions={{
-            headerShown: true,
-            headerRight: () =>
-              showLogout ? (
-                <Pressable onPress={handleLogout} style={{ marginRight: 15 }}>
-                  <MaterialIcons
-                    name="logout"
-                    size={24}
-                    color={colorScheme === "dark" ? "white" : "black"}
-                  />
-                </Pressable>
-              ) : null,
-            headerBackVisible: false,
-            headerTitleStyle: {
-              color: colorScheme === "dark" ? "white" : "black",
-              marginLeft: 20, // décale le titre vers la droite
-            },
-            headerTintColor: colorScheme === "dark" ? "white" : "black",
-            headerLeft: () =>
-              ["/auth/login", "/auth/register"].includes(currentRoute) ? (
-                <BackToHomeButton />
-              ) : null,
-          }}
-          style={styles.stack}
-        >
-          {/* Définition des écrans avec titres */}
-          <Stack.Screen name="index" options={{ title: "Finders Keepers" }} />
-          <Stack.Screen name="auth/login" options={{ title: "Connexion" }} />
-          <Stack.Screen name="auth/register" options={{ title: "Inscription" }} />
-          <Stack.Screen
-            name="auth/forgot-password"
-            options={{ title: "Mot de passe oublié" }}
-          />
-          <Stack.Screen
-            name="auth/reset-password"
-            options={{ title: "Réinitialisation mot de passe" }}
-          />
-          <Stack.Screen
-            name="conversation/conversation"
-            options={{ title: "Conversation" }}
-          />
-          <Stack.Screen name="home/home" options={{ title: "Accueil" }} />
-          <Stack.Screen name="legal/legal" options={{ title: "Mentions légales" }} />
-          <Stack.Screen
-            name="listConversation/listConversation"
-            options={{ title: "Conversations" }}
-          />
-          <Stack.Screen name="objectForm/allObjects" options={{ title: "Objets" }} />
-          <Stack.Screen
-            name="objectForm/objectDetails"
-            options={{ title: "Détails de l’objet" }}
-          />
-          <Stack.Screen
-            name="objectForm/objectForm"
-            options={{ title: "Formulaire objet" }}
-          />
-          <Stack.Screen
-            name="profile/editProfile"
-            options={{ title: "Modifier profil" }}
-          />
-          <Stack.Screen name="profile/profile" options={{ title: "Profil" }} />
-          <Stack.Screen name="verify" options={{ title: "Vérification" }} />
-          <Stack.Screen name="+not-found" options={{ title: "Page non trouvée" }} />
-        </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <View style={styles.container}>
+          <Stack
+            key={currentRoute}
+            screenOptions={{
+              headerShown: true,
+              headerRight: () =>
+                showLogout ? (
+                  <Pressable onPress={handleLogout} style={{ marginRight: 15 }}>
+                    <MaterialIcons
+                      name="logout"
+                      size={24}
+                      color={colorScheme === "dark" ? "white" : "black"}
+                    />
+                  </Pressable>
+                ) : null,
+              headerBackVisible: false,
+              headerTitleStyle: {
+                color: colorScheme === "dark" ? "white" : "black",
+                marginLeft: 20, // décale le titre vers la droite
+              },
+              headerTintColor: colorScheme === "dark" ? "white" : "black",
+              headerLeft: () =>
+                ["/auth/login", "/auth/register"].includes(currentRoute) ? (
+                  <BackToHomeButton />
+                ) : null,
+            }}
+            style={styles.stack}
+          >
+            {/* Définition des écrans avec titres */}
+            <Stack.Screen name="index" options={{ title: "Finders Keepers" }} />
+            <Stack.Screen name="auth/login" options={{ title: "Connexion" }} />
+            <Stack.Screen name="auth/register" options={{ title: "Inscription" }} />
+            <Stack.Screen
+              name="auth/forgot-password"
+              options={{ title: "Mot de passe oublié" }}
+            />
+            <Stack.Screen
+              name="auth/reset-password"
+              options={{ title: "Réinitialisation mot de passe" }}
+            />
+            <Stack.Screen
+              name="conversation/conversation"
+              options={{ title: "Conversation" }}
+            />
+            <Stack.Screen name="home/home" options={{ title: "Accueil" }} />
+            <Stack.Screen name="legal/legal" options={{ title: "Mentions légales" }} />
+            <Stack.Screen
+              name="listConversation/listConversation"
+              options={{ title: "Conversations" }}
+            />
+            <Stack.Screen name="objectForm/allObjects" options={{ title: "Objets" }} />
+            <Stack.Screen
+              name="objectForm/objectDetails"
+              options={{ title: "Détails de l’objet" }}
+            />
+            <Stack.Screen
+              name="objectForm/objectForm"
+              options={{ title: "Formulaire objet" }}
+            />
+            <Stack.Screen
+              name="profile/editProfile"
+              options={{ title: "Modifier profil" }}
+            />
+            <Stack.Screen name="profile/profile" options={{ title: "Profil" }} />
+            <Stack.Screen name="verify" options={{ title: "Vérification" }} />
+            <Stack.Screen name="+not-found" options={{ title: "Page non trouvée" }} />
+          </Stack>
 
-        {/* Footer fixe en bas sauf sur les routes exclues */}
-        {!excludedRoutes.includes(currentRoute) && <Footer />}
-      </View>
+          {/* Footer fixe en bas sauf sur les routes exclues */}
+          {!excludedRoutes.includes(currentRoute) && <Footer />}
+        </View>
 
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      <Toast />
-    </ThemeProvider>
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+        <Toast />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
