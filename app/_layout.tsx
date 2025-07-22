@@ -14,6 +14,19 @@ import { useAuth } from "../src/context/authContext";
 
 import Footer from "../src/components/Footer";
 
+function BackToHomeButton() {
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.replace("/")}
+      style={{ marginLeft: 0, marginRight: 10 }} // bouton collé à gauche
+      hitSlop={10}
+    >
+      <MaterialIcons name="arrow-back" size={24} color="#000" />
+    </Pressable>
+  );
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { logout } = useAuth();
@@ -34,7 +47,6 @@ export default function RootLayout() {
 
   const excludedRoutes = ["/", "/auth/login", "/auth/register"];
   const showLogout = !excludedRoutes.includes(currentRoute);
-  const isHome = currentRoute === "/";
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -53,23 +65,61 @@ export default function RootLayout() {
                   />
                 </Pressable>
               ) : null,
-            headerBackVisible: !isHome,
+            headerBackVisible: false,
             headerTitleStyle: {
               color: colorScheme === "dark" ? "white" : "black",
+              marginLeft: 20, // décale le titre vers la droite
             },
             headerTintColor: colorScheme === "dark" ? "white" : "black",
+            headerLeft: () =>
+              ["/auth/login", "/auth/register"].includes(currentRoute) ? (
+                <BackToHomeButton />
+              ) : null,
           }}
           style={styles.stack}
         >
-          <Stack.Screen name="index" options={{ title: "Page d accueil" }} />
+          {/* Définition des écrans avec titres */}
+          <Stack.Screen name="index" options={{ title: "Finders Keepers" }} />
+          <Stack.Screen name="auth/login" options={{ title: "Connexion" }} />
+          <Stack.Screen name="auth/register" options={{ title: "Inscription" }} />
           <Stack.Screen
-            name="+not-found"
-            options={{ title: "Page non trouvée" }}
+            name="auth/forgot-password"
+            options={{ title: "Mot de passe oublié" }}
           />
+          <Stack.Screen
+            name="auth/reset-password"
+            options={{ title: "Réinitialisation mot de passe" }}
+          />
+          <Stack.Screen
+            name="conversation/conversation"
+            options={{ title: "Conversation" }}
+          />
+          <Stack.Screen name="home/home" options={{ title: "Accueil" }} />
+          <Stack.Screen name="legal/legal" options={{ title: "Mentions légales" }} />
+          <Stack.Screen
+            name="listConversation/listConversation"
+            options={{ title: "Conversations" }}
+          />
+          <Stack.Screen name="objectForm/allObjects" options={{ title: "Objets" }} />
+          <Stack.Screen
+            name="objectForm/objectDetails"
+            options={{ title: "Détails de l’objet" }}
+          />
+          <Stack.Screen
+            name="objectForm/objectForm"
+            options={{ title: "Formulaire objet" }}
+          />
+          <Stack.Screen
+            name="profile/editProfile"
+            options={{ title: "Modifier profil" }}
+          />
+          <Stack.Screen name="profile/profile" options={{ title: "Profil" }} />
+          <Stack.Screen name="verify" options={{ title: "Vérification" }} />
+          <Stack.Screen name="+not-found" options={{ title: "Page non trouvée" }} />
         </Stack>
 
-        {/* Footer fixe en bas */}
-        <Footer />
+        {/* Footer fixe en bas sauf sur les routes exclues */}
+        {!excludedRoutes.includes(currentRoute) && <Footer />}
       </View>
 
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
