@@ -13,7 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import authFetch from "../utils/authFetch";
 import { Swipeable } from "react-native-gesture-handler";
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface User {
   nom: string;
@@ -70,7 +70,7 @@ export default function Profile() {
     try {
       setLoading(true);
       const response = await authFetch(`http://192.168.1.26:8080/objects/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!response.ok) throw new Error("Erreur suppression objet");
 
@@ -89,21 +89,35 @@ export default function Profile() {
   const renderRightActions = (
     progress: any,
     dragX: any,
+    onEdit: () => void,
     onDelete: () => void
   ) => {
     return (
-      <Pressable
-        onPress={onDelete}
-        style={{
-          backgroundColor: "red",
-          justifyContent: "center",
-          alignItems: "center",
-          width: 80,
-          height: "100%",
-        }}
-      >
-        <MaterialIcons name="delete" size={32} color="#fff" />
-      </Pressable>
+      <View style={{ flexDirection: "row", width: 160, height: "100%" }}>
+        <Pressable
+          onPress={onEdit}
+          style={{
+            flex: 1,
+            backgroundColor: "#4CAF50",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <MaterialIcons name="edit" size={28} color="#fff" />
+        </Pressable>
+
+        <Pressable
+          onPress={onDelete}
+          style={{
+            flex: 1,
+            backgroundColor: "red",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <MaterialIcons name="delete" size={28} color="#fff" />
+        </Pressable>
+      </View>
     );
   };
 
@@ -125,10 +139,14 @@ export default function Profile() {
       );
     };
 
+    const handleEdit = () => {
+      router.push(`/objectForm/objectEdit?id=${item.id}`);
+    };
+
     return (
       <Swipeable
         renderRightActions={(progress, dragX) =>
-          renderRightActions(progress, dragX, handleDelete)
+          renderRightActions(progress, dragX, handleEdit, handleDelete)
         }
       >
         <Pressable
@@ -163,7 +181,6 @@ export default function Profile() {
     );
   }
 
-  // Image générique Unsplash portrait
   const avatarUri =
     "https://images.unsplash.com/vector-1738312097380-45562da00459?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
