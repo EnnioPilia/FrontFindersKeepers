@@ -20,7 +20,9 @@ interface ObjectItem {
   id: number;
   name: string | null;
   description: string;
+
   photoPath: string;
+
   localisation: string;
   date: string;
   type: "PERDU" | "TROUVE";
@@ -149,6 +151,7 @@ export default function AllObjects() {
   }
 
   return (
+
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }}>
       <View style={{ marginHorizontal: cardMargin }}>
         <TextInput
@@ -229,6 +232,7 @@ export default function AllObjects() {
         </Pressable>
       </View>
     </ScrollView>
+
   );
 }
 
