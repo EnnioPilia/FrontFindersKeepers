@@ -7,13 +7,15 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Button,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { jwtDecode } from 'jwt-decode';
+import jwtDecode from 'jwt-decode';
 import authFetch from '../utils/authFetch';
+import MapView, { Marker } from 'react-native-maps';
 
 interface ObjectDetail {
   id: number;
@@ -29,6 +31,8 @@ interface ObjectDetail {
     nom: string;
     prenom: string;
     email: string;
+    avatarUrl?: string;
+    reportedDate?: string;
   } | null;
 }
 
@@ -39,7 +43,6 @@ export default function ObjectDetails() {
   const [loading, setLoading] = useState(true);
   const [photoExists, setPhotoExists] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const getUserEmailFromToken = async () => {
@@ -90,41 +93,6 @@ export default function ObjectDetails() {
   }, [id]);
 
   const isOwner = object && currentUserEmail && object.owner?.email === currentUserEmail;
-
-  const handleMarkAsClaimed = () => {
-    if (!object) return;
-
-    Alert.alert(
-      'Confirmation',
-      "Voulez-vous marquer cet objet comme réclamé ?",
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Confirmer',
-          onPress: async () => {
-            setUpdating(true);
-            try {
-              const response = await authFetch(`http://192.168.1.26:8080/objects/${object.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reclame: true }),
-              });
-              if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'Erreur lors de la mise à jour');
-              }
-              setObject((prev) => (prev ? { ...prev, reclame: true } : prev));
-              Alert.alert('Succès', "Objet marqué comme réclamé.");
-            } catch (error: any) {
-              Alert.alert('Erreur', `Impossible de mettre à jour : ${error.message}`);
-            } finally {
-              setUpdating(false);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const handleContact = async () => {
     if (!object?.owner?.email) {
@@ -178,8 +146,28 @@ export default function ObjectDetails() {
     );
   }
 
+  let latitude: number | null = null;
+  let longitude: number | null = null;
+  if (object.localisation) {
+    const coords = object.localisation.split(',');
+    if (coords.length === 2) {
+      const lat = parseFloat(coords[0].trim());
+      const lng = parseFloat(coords[1].trim());
+      if (!isNaN(lat) && !isNaN(lng)) {
+        latitude = lat;
+        longitude = lng;
+      }
+    }
+  }
+
+  const formattedDate = new Date(object.date).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
       {photoExists ? (
         <Image source={{ uri: object.photoPath! }} style={styles.image} />
       ) : (
@@ -188,58 +176,198 @@ export default function ObjectDetails() {
         </View>
       )}
 
-      <Text style={styles.title}>{object.name ?? 'Sans nom'}</Text>
-      <Text style={styles.type}>{object.type}</Text>
+      <View style={styles.contentWrapper}>
+        {object.type && (
+          <View
+            style={[
+              styles.typeBadge,
+              object.type === 'PERDU' ? styles.typeLost : styles.typeFound,
+            ]}
+          >
+            <Text style={styles.typeBadgeText}>
+              {object.type === 'PERDU' ? 'Objet perdu' : 'Objet trouvé'}
+            </Text>
+          </View>
+        )}
 
-      <Text style={styles.label}>Description :</Text>
-      <Text style={styles.description}>{object.description}</Text>
+        <Text style={styles.title}>{object.name ?? 'Sans nom'}</Text>
 
-      <Text style={styles.label}>Localisation :</Text>
-      <Text style={styles.meta}>{object.localisation}</Text>
+        <Text style={styles.description}>{object.description}</Text>
 
-      <Text style={styles.label}>Date :</Text>
-      <Text style={styles.meta}>{new Date(object.date).toLocaleString()}</Text>
+        <Text style={styles.sectionTitle}>Détails</Text>
 
-      <Text style={styles.label}>Réclamé :</Text>
-      <Text style={styles.meta}>{object.reclame ? 'Oui' : 'Non'}</Text>
-
-      {/* Bouton Contacter, visible uniquement si ce n’est pas le propriétaire */}
-      {!isOwner && (
-        <View style={styles.contactButton}>
-          <Button title="Contacter" onPress={handleContact} color="#2e86de" />
+        <View style={styles.detailsRow}>
+          <Text style={styles.detailLabel}>Date</Text>
+          <Text style={styles.detailValue}>{formattedDate}</Text>
         </View>
-      )}
 
-      {/* Bouton Mettre fin à la conversation, visible uniquement pour le propriétaire si non réclamé */}
-      {isOwner && !object.reclame && (
-        <View style={{ marginTop: 20 }}>
-          <Button
-            title={updating ? "Mise à jour..." : "Mettre fin à la conversation"}
-            color="#d9534f"
-            onPress={handleMarkAsClaimed}
-            disabled={updating}
-          />
-        </View>
-      )}
+        {latitude !== null && longitude !== null && (
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude,
+              longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+          >
+            <Marker coordinate={{ latitude, longitude }} />
+          </MapView>
+        )}
+
+        {object.owner && (
+          <>
+            <Text style={styles.sectionTitle}>Signalé par</Text>
+            <View style={styles.reportedBy}>
+              <Image
+                source={{
+                  uri:
+                    object.owner.avatarUrl ||
+                    'https://images.unsplash.com/vector-1738312097380-45562da00459?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                }}
+                style={styles.avatar}
+              />
+              <View>
+                <Text style={styles.reporterName}>
+                  {object.owner.prenom} {object.owner.nom}
+                </Text>
+                <Text style={styles.reportDate}>
+                  Signalé le{' '}
+                  {object.owner.reportedDate
+                    ? new Date(object.owner.reportedDate).toLocaleDateString()
+                    : formattedDate}
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
+
+        {!isOwner && (
+          <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
+            <Text style={styles.contactButtonText}>Contacter</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  image: {
-    width: '100%',
-    height: 250,
-    borderRadius: 10,
-    backgroundColor: '#ccc',
-    marginBottom: 20,
+  scrollContainer: {
+    paddingBottom: 30,
   },
-  noImage: { justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
-  type: { fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#2e86de' },
-  label: { fontWeight: '700', marginTop: 12, marginBottom: 4 },
-  description: { fontSize: 16, color: '#333' },
-  meta: { fontSize: 14, color: '#666' },
-  contactButton: { marginTop: 30 },
+  image: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').width, // carré
+    borderRadius: 0,
+    backgroundColor: '#eee',
+    marginBottom: 20,
+    // marginTop supprimé ici
+  },
+  noImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentWrapper: {
+    paddingHorizontal: 20,
+  },
+  typeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  typeBadgeText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  typeLost: {
+    backgroundColor: '#d9534f',
+  },
+  typeFound: {
+    backgroundColor: '#28a745',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#111',
+  },
+  description: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    fontSize: 18,
+    marginBottom: 15,
+    color: '#222',
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomColor: '#eee',
+    borderBottomWidth: 1,
+  },
+  detailLabel: {
+    color: '#666',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  detailValue: {
+    color: '#222',
+    fontWeight: '500',
+    fontSize: 14,
+    maxWidth: '60%',
+    textAlign: 'right',
+  },
+  reportedBy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 30,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  reporterName: {
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#111',
+  },
+  reportDate: {
+    color: '#7a7a7a',
+    fontSize: 13,
+  },
+  contactButton: {
+    backgroundColor: '#2e86de',
+    paddingVertical: 15,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  contactButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  map: {
+    height: 180,
+    borderRadius: 15,
+    marginTop: 15,
+    marginBottom: 30,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

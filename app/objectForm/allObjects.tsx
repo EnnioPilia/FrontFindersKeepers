@@ -96,7 +96,9 @@ export default function AllObjects() {
           <Text style={styles.description} numberOfLines={2}>
             {item.description}
           </Text>
-          <Text style={styles.meta}>📍 {item.localisation}</Text>
+
+          {/* Ligne localisation supprimée */}
+
           <Text style={styles.meta}>🕒 {new Date(item.date).toLocaleString()}</Text>
         </View>
       </Pressable>
@@ -112,14 +114,12 @@ export default function AllObjects() {
   }
 
   return (
-    <>
-      <FlatList
-        data={objects}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-      />
-    </>
+    <FlatList
+      data={objects}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={renderItem}
+      contentContainerStyle={styles.list}
+    />
   );
 }
 
