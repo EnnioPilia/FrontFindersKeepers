@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
+
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,6 +28,7 @@ interface ObjectDetail {
   date: string;
   type: 'PERDU' | 'TROUVE';
   reclame: boolean;
+
   owner: {
     id: number;
     nom: string;
@@ -34,6 +37,7 @@ interface ObjectDetail {
     avatarUrl?: string;
     reportedDate?: string;
   } | null;
+
 }
 
 export default function ObjectDetails() {
@@ -43,6 +47,7 @@ export default function ObjectDetails() {
   const [loading, setLoading] = useState(true);
   const [photoExists, setPhotoExists] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
 
   useEffect(() => {
     const getUserEmailFromToken = async () => {
@@ -62,6 +67,7 @@ export default function ObjectDetails() {
 
   useEffect(() => {
     if (!id) {
+
       Alert.alert('Erreur', "Aucun identifiant d'objet fourni.");
       router.back();
       return;
@@ -82,7 +88,9 @@ export default function ObjectDetails() {
           setPhotoExists(info.exists);
         }
       } catch (error) {
+
         Alert.alert('Erreur', "Impossible de charger les détails de l’objet.");
+
         router.back();
       } finally {
         setLoading(false);
@@ -130,6 +138,7 @@ export default function ObjectDetails() {
     }
   };
 
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -166,6 +175,7 @@ export default function ObjectDetails() {
     day: 'numeric',
   });
 
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       {photoExists ? (
@@ -175,6 +185,7 @@ export default function ObjectDetails() {
           <Text style={{ color: '#999' }}>Pas d’image disponible</Text>
         </View>
       )}
+
 
       <View style={styles.contentWrapper}>
         {object.type && (
@@ -189,6 +200,7 @@ export default function ObjectDetails() {
             </Text>
           </View>
         )}
+
 
         <Text style={styles.title}>{object.name ?? 'Sans nom'}</Text>
 
@@ -248,6 +260,7 @@ export default function ObjectDetails() {
           </TouchableOpacity>
         )}
       </View>
+
     </ScrollView>
   );
 }
@@ -256,6 +269,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingBottom: 30,
   },
+
   image: {
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').width, // carré
@@ -370,4 +384,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
 });
