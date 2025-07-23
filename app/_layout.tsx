@@ -83,7 +83,10 @@ export default function RootLayout() {
             {/* Définition des écrans avec titres */}
             <Stack.Screen name="index" options={{ title: "Finders Keepers" }} />
             <Stack.Screen name="auth/login" options={{ title: "Connexion" }} />
-            <Stack.Screen name="auth/register" options={{ title: "Inscription" }} />
+            <Stack.Screen
+              name="auth/register"
+              options={{ title: "Inscription" }}
+            />
             <Stack.Screen
               name="auth/forgot-password"
               options={{ title: "Mot de passe oublié" }}
@@ -97,12 +100,18 @@ export default function RootLayout() {
               options={{ title: "Conversation" }}
             />
             <Stack.Screen name="home/home" options={{ title: "Accueil" }} />
-            <Stack.Screen name="legal/legal" options={{ title: "Mentions légales" }} />
+            <Stack.Screen
+              name="legal/legal"
+              options={{ title: "Mentions légales" }}
+            />
             <Stack.Screen
               name="listConversation/listConversation"
               options={{ title: "Conversations" }}
             />
-            <Stack.Screen name="objectForm/allObjects" options={{ title: "Objets" }} />
+            <Stack.Screen
+              name="objectForm/allObjects"
+              options={{ title: "Objets" }}
+            />
             <Stack.Screen
               name="objectForm/objectDetails"
               options={{ title: "Détails de l’objet" }}
@@ -115,9 +124,19 @@ export default function RootLayout() {
               name="profile/editProfile"
               options={{ title: "Modifier profil" }}
             />
-            <Stack.Screen name="profile/profile" options={{ title: "Profil" }} />
+            <Stack.Screen
+              name="profile/profile"
+              options={{ title: "Profil" }}
+            />
             <Stack.Screen name="verify" options={{ title: "Vérification" }} />
-            <Stack.Screen name="+not-found" options={{ title: "Page non trouvée" }} />
+            <Stack.Screen
+              name="+not-found"
+              options={{ title: "Page non trouvée" }}
+            />
+            <Stack.Screen
+              name="objectForm/objectEdit"
+              options={{ title: "Modifier un objet" }}
+            />
           </Stack>
 
           {/* Footer fixe en bas sauf sur les routes exclues */}

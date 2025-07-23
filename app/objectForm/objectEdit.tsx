@@ -3,20 +3,19 @@ import {
   View,
   Text,
   TextInput,
-  Button,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  ScrollView,
   Pressable,
   Image,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system";
 import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import authFetch from "../utils/authFetch";
 
@@ -25,7 +24,6 @@ const photosDir = FileSystem.documentDirectory + "photos/";
 async function ensurePhotosDirExists() {
   const dirInfo = await FileSystem.getInfoAsync(photosDir);
   if (!dirInfo.exists) {
-    console.log("Création du dossier photos...");
     await FileSystem.makeDirectoryAsync(photosDir, { intermediates: true });
   }
 }
@@ -34,13 +32,12 @@ async function savePhotoToPhotosDir(uri: string) {
   try {
     await ensurePhotosDirExists();
     const parts = uri.split("/");
-    const filename = parts.length > 0 ? parts[parts.length - 1] : `photo_${Date.now()}.jpg`;
+    const filename =
+      parts.length > 0 ? parts[parts.length - 1] : `photo_${Date.now()}.jpg`;
     const dest = photosDir + filename;
-    console.log(`Copie de la photo de ${uri} vers ${dest}`);
     await FileSystem.copyAsync({ from: uri, to: dest });
     return dest;
-  } catch (error) {
-    console.error("Erreur sauvegarde photo:", error);
+  } catch {
     Alert.alert("Erreur", "Impossible de sauvegarder la photo localement.");
     return null;
   }
@@ -48,16 +45,13 @@ async function savePhotoToPhotosDir(uri: string) {
 
 async function compressImage(uri: string) {
   try {
-    console.log("Compression de l'image :", uri);
     const manipulatedResult = await ImageManipulator.manipulateAsync(
       uri,
       [{ resize: { width: 800 } }],
       { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
     );
-    console.log("Image compressée :", manipulatedResult.uri);
     return manipulatedResult.uri;
-  } catch (error) {
-    console.error("Erreur compression image :", error);
+  } catch {
     return uri;
   }
 }
@@ -67,37 +61,28 @@ export default function ObjectEdit() {
   const params = useLocalSearchParams();
   const id = params.id as string | undefined;
 
-  console.log("Paramètre id reçu :", id);
-
   const [name, setName] = useState("");
-  const [type, setType] = useState<"PERDU" | "TROUVE" | "">("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
   const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [type, setType] = useState<"PERDU" | "TROUVE" | "">("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!id) {
-      console.log("id non défini, on attend...");
-      return;
-    }
+    if (!id) return;
 
     async function fetchObject() {
       setLoading(true);
-      console.log("Chargement de l'objet avec id =", id);
       try {
         const res = await authFetch(`http://192.168.1.26:8080/objects/${id}`);
-        console.log("Réponse API status :", res.status);
         if (!res.ok) throw new Error("Erreur chargement objet");
         const data = await res.json();
-        console.log("Données reçues :", data);
 
         setName(data.name || "");
-        setType(data.type || "");
         setDescription(data.description || "");
 
         if (data.localisation) {
@@ -110,24 +95,15 @@ export default function ObjectEdit() {
           };
           setRegion(initialRegion);
           setLocation({ latitude: lat, longitude: lon });
-          console.log("Localisation définie :", lat, lon);
         }
 
-        if (data.date) {
-          setDate(new Date(data.date));
-          console.log("Date définie :", data.date);
-        }
-
-        if (data.photoPath) {
-          setPhotoUri(data.photoPath);
-          console.log("Photo définie :", data.photoPath);
-        }
+        setDate(data.date ? new Date(data.date) : new Date());
+        setType(data.type || "");
+        setPhotoUri(data.photoPath || null);
       } catch (e: any) {
-        console.error("Erreur lors du fetch :", e);
         Alert.alert("Erreur", e.message);
       } finally {
         setLoading(false);
-        console.log("Chargement terminé.");
       }
     }
 
@@ -135,47 +111,16 @@ export default function ObjectEdit() {
   }, [id]);
 
   const onMarkerDragEnd = (e: any) => {
-    const coords = e.nativeEvent.coordinate;
-    console.log("Marker déplacé à :", coords);
-    setLocation(coords);
-  };
-
-  const takePhoto = async () => {
-    console.log("Demande permission caméra...");
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    if (cameraStatus !== "granted") {
-      Alert.alert("Permission refusée", "L’accès à la caméra est requis.");
-      return;
-    }
-
-    console.log("Ouverture caméra...");
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.1,
-      allowsEditing: true,
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      console.log("Photo prise :", result.assets[0].uri);
-      const compressedUri = await compressImage(result.assets[0].uri);
-      const localUri = await savePhotoToPhotosDir(compressedUri);
-      if (localUri) {
-        setPhotoUri(localUri);
-        console.log("Photo enregistrée localement :", localUri);
-      } else {
-        Alert.alert("Erreur", "Impossible de sauvegarder la photo localement.");
-      }
-    }
+    setLocation(e.nativeEvent.coordinate);
   };
 
   const pickImage = async () => {
-    console.log("Demande permission galerie...");
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Permission refusée", "L’accès à la galerie est requis.");
       return;
     }
 
-    console.log("Ouverture galerie...");
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
@@ -183,78 +128,125 @@ export default function ObjectEdit() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      console.log("Image sélectionnée :", result.assets[0].uri);
       const compressedUri = await compressImage(result.assets[0].uri);
       const localUri = await savePhotoToPhotosDir(compressedUri);
-      if (localUri) {
-        setPhotoUri(localUri);
-        console.log("Photo enregistrée localement :", localUri);
-      } else {
-        Alert.alert("Erreur", "Impossible de sauvegarder la photo localement.");
-      }
+      if (localUri) setPhotoUri(localUri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission refusée", "L’accès à la caméra est requis.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+      allowsEditing: true,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const compressedUri = await compressImage(result.assets[0].uri);
+      const localUri = await savePhotoToPhotosDir(compressedUri);
+      if (localUri) setPhotoUri(localUri);
     }
   };
 
   const handleSubmit = async () => {
-    if (!id) {
-      Alert.alert("Erreur", "ID de l'objet manquant");
-      return;
-    }
-    if (!name || !type || !description || !location) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs requis.");
+    if (!name.trim() || !description.trim() || !location || !type) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
     setSaving(true);
-    console.log("Envoi des données modifiées au serveur...");
 
     const dataToSend = {
       name,
-      type,
       description,
-      localisation: `${location.latitude},${location.longitude}`,
+      localisation: location ? `${location.latitude},${location.longitude}` : "",
       date: date.toISOString(),
+      type,
       photoPath: photoUri,
       reclame: false,
     };
 
     try {
-      const response = await authFetch(`http://192.168.1.26:8080/objects/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
-      });
+      const response = await authFetch(
+        id ? `http://192.168.1.26:8080/objects/${id}` : "http://192.168.1.26:8080/objects",
+        {
+          method: id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToSend),
+        }
+      );
 
-      console.log("Réponse serveur pour PUT:", response.status);
       if (!response.ok) {
         const err = await response.text();
-        Alert.alert("Erreur", `Erreur serveur: ${err}`);
+        Alert.alert("Erreur", `Erreur serveur : ${err}`);
         return;
       }
 
-      Alert.alert("Succès", "Objet modifié ✅");
+      Alert.alert("Succès", id ? "Objet modifié" : "Objet créé");
       router.push("/objectForm/allObjects");
-    } catch (error) {
-      console.error("Erreur réseau lors du PUT:", error);
+    } catch {
       Alert.alert("Erreur", "Impossible de contacter le serveur.");
     } finally {
       setSaving(false);
     }
   };
 
+  const showDatePicker = () => setDatePickerVisible(true);
+  const hideDatePicker = () => setDatePickerVisible(false);
+
+  const handleConfirm = (selectedDate: Date) => {
+    if (selectedDate > new Date()) {
+      Alert.alert("Erreur", "La date ne peut pas être dans le futur.");
+      hideDatePicker();
+      return;
+    }
+    setDate(selectedDate);
+    hideDatePicker();
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#2e86de" />
       </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Modifier un objet</Text>
+      <Text style={styles.sectionTitle}>Photo de l'objet</Text>
 
-      <Text style={styles.label}>Nom de l'objet</Text>
+      <View style={styles.photoContainer}>
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.photo} />
+        ) : (
+          <View
+            style={[
+              styles.photo,
+              { backgroundColor: "#eee", justifyContent: "center", alignItems: "center" },
+            ]}
+          >
+            <Text style={{ color: "#999" }}>Aucune photo</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable style={styles.button} onPress={takePhoto}>
+          <Text style={styles.buttonText}>Prendre une photo</Text>
+        </Pressable>
+        <Pressable style={styles.button} onPress={pickImage}>
+          <Text style={styles.buttonText}>Télécharger</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.sectionTitle}>Détails de l'objet</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Nom de l'objet"
@@ -262,34 +254,16 @@ export default function ObjectEdit() {
         onChangeText={setName}
       />
 
-      <Text style={styles.label}>Type d'objet</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker selectedValue={type} onValueChange={(val) => setType(val)}>
-          <Picker.Item label="Sélectionner..." value="" />
-          <Picker.Item label="Objet perdu" value="PERDU" />
-          <Picker.Item label="Objet trouvé" value="TROUVE" />
-        </Picker>
-      </View>
-
-      <Text style={styles.label}>Description</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Décrivez l'objet..."
+        style={[styles.input, { height: 100, textAlignVertical: "top" }]}
         multiline
+        placeholder="Description"
         value={description}
         onChangeText={setDescription}
       />
 
-      <Text style={styles.label}>Photo</Text>
-      {photoUri ? (
-        <Image source={{ uri: photoUri }} style={styles.image} />
-      ) : (
-        <Text style={{ color: "#999", marginBottom: 10 }}>Aucune photo sélectionnée</Text>
-      )}
-      <Button title="📷 Prendre une photo" onPress={takePhoto} />
-      <Button title="🖼️ Choisir depuis la galerie" onPress={pickImage} />
+      <Text style={styles.sectionTitle}>Localisation</Text>
 
-      <Text style={styles.label}>Localisation</Text>
       {region ? (
         <MapView
           provider={PROVIDER_GOOGLE}
@@ -300,7 +274,7 @@ export default function ObjectEdit() {
           {location && <Marker coordinate={location} draggable onDragEnd={onMarkerDragEnd} />}
         </MapView>
       ) : (
-        <Text style={styles.locationText}>Chargement de la carte...</Text>
+        <Text style={styles.loadingMapText}>Chargement de la carte...</Text>
       )}
 
       {location && (
@@ -309,59 +283,137 @@ export default function ObjectEdit() {
         </Text>
       )}
 
-      <Text style={styles.label}>Date de perte / découverte</Text>
-      <Button title="Choisir une date" onPress={() => setShowDatePicker(true)} />
-      {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={(_, selectedDate) => {
-            if (selectedDate) setDate(selectedDate);
-            setShowDatePicker(false);
-          }}
-        />
-      )}
-      <Text style={styles.dateText}>Date sélectionnée : {date.toLocaleDateString()}</Text>
+      <Text style={styles.sectionTitle}>Date</Text>
 
-      <Button title={saving ? "Enregistrement..." : "Enregistrer"} onPress={handleSubmit} disabled={saving} />
+      <Pressable style={styles.input} onPress={showDatePicker}>
+        <Text style={{ color: "#000", fontSize: 16 }}>{date.toLocaleDateString()}</Text>
+      </Pressable>
 
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backText}>← Retour</Text>
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
+        maximumDate={new Date()}
+      />
+
+      <Text style={styles.sectionTitle}>Type</Text>
+
+      <View style={styles.pickerWrapper}>
+        <Picker
+          selectedValue={type}
+          onValueChange={(val) => setType(val)}
+          mode="dropdown"
+          style={styles.picker}
+        >
+          <Picker.Item label="Sélectionner..." value="" />
+          <Picker.Item label="Perdu" value="PERDU" />
+          <Picker.Item label="Trouvé" value="TROUVE" />
+        </Picker>
+      </View>
+
+      <Pressable
+        style={[styles.submitButton, saving && { opacity: 0.7 }]}
+        onPress={handleSubmit}
+        disabled={saving}
+      >
+        <Text style={styles.submitButtonText}>
+          {saving ? "Enregistrement..." : "Soumettre"}
+        </Text>
       </Pressable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: "#fff", flexGrow: 1 },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
+  container: {
+    padding: 20,
+    backgroundColor: "#fff",
+    flexGrow: 1,
   },
-  label: { fontWeight: "600", marginTop: 20, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    padding: 10,
+  sectionTitle: {
+    fontWeight: "700",
+    fontSize: 20,
+    marginBottom: 12,
+    color: "#1c1c1e",
   },
-  pickerWrapper: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6 },
-  image: {
+  photoContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  photo: {
     width: "100%",
-    height: 200,
-    borderRadius: 10,
-    marginBottom: 10,
+    height: 180,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  button: {
+    flex: 1,
+    backgroundColor: "#f2f2f7",
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginHorizontal: 6,
+    alignItems: "center",
+  },
+  buttonText: {
+    fontWeight: "600",
+    fontSize: 16,
+    color: "#1c1c1e",
+  },
+  input: {
+    backgroundColor: "#f2f2f7",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: "#3a3a3c",
+    marginBottom: 16,
   },
   map: {
     height: 300,
     width: "100%",
     marginVertical: 10,
+    borderRadius: 12,
   },
-  locationText: { marginTop: 8, fontStyle: "italic", textAlign: "center" },
-  dateText: { marginVertical: 10, textAlign: "center" },
-  backButton: { marginTop: 30, alignItems: "center" },
-  backText: { color: "#2e86de", fontWeight: "bold" },
+  loadingMapText: {
+    textAlign: "center",
+    color: "#999",
+    marginBottom: 12,
+  },
+  locationText: {
+    textAlign: "center",
+    fontStyle: "italic",
+    marginBottom: 20,
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 24,
+  },
+  picker: {
+    height: 50,
+    width: "100%",
+  },
+  submitButton: {
+    backgroundColor: "#007aff",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  submitButtonText: {
+    fontWeight: "700",
+    fontSize: 18,
+    color: "#fff",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

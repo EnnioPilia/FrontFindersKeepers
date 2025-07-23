@@ -49,7 +49,7 @@ export default function Footer() {
 const styles = StyleSheet.create({
   footer: {
     height: 60,
-    backgroundColor: "#2e86de",
+    backgroundColor: "#86C1FC",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
