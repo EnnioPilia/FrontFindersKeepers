@@ -9,9 +9,10 @@ import {
   StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 import authFetch from "../utils/authFetch";
 import { useRouter } from "expo-router";
+import { Swipeable } from "react-native-gesture-handler";
 
 interface User {
   id: number;
@@ -73,6 +74,18 @@ export default function ConversationsList() {
     fetchConversations();
   }, [currentUserEmail]);
 
+  // Action quand on swipe à droite et ouvre la conversation
+  const renderRightActions = (progress: any, dragX: any, onOpen: () => void) => {
+    return (
+      <Pressable
+        style={styles.swipeOpenButton}
+        onPress={onOpen}
+      >
+        <Text style={styles.swipeOpenText}>Ouvrir</Text>
+      </Pressable>
+    );
+  };
+
   const openConversation = (id: number) => {
     router.push({
       pathname: "/conversation/conversation",
@@ -118,25 +131,31 @@ export default function ConversationsList() {
           const backgroundColor = colors[index % colors.length];
 
           return (
-            <Pressable
-              style={({ pressed }) => [
-                styles.item,
-                { backgroundColor },
-                pressed && { opacity: 0.7 },
-              ]}
-              onPress={() => openConversation(item.id)}
+            <Swipeable
+              renderRightActions={(progress, dragX) =>
+                renderRightActions(progress, dragX, () => openConversation(item.id))
+              }
             >
-              <View style={styles.capsuleContainer}>
-                <View style={styles.textContainer}>
-                  <Text style={[styles.name, { color: "white" }]}>
-                    {otherUser.prenom.trim()} {otherUser.nom.trim()}
-                  </Text>
-                  <Text style={[styles.email, { color: "white" }]}>
-                    {otherUser.email}
-                  </Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.item,
+                  { backgroundColor },
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => openConversation(item.id)}
+              >
+                <View style={styles.capsuleContainer}>
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.name, { color: "white" }]}>
+                      {otherUser.prenom.trim()} {otherUser.nom.trim()}
+                    </Text>
+                    <Text style={[styles.email, { color: "white" }]}>
+                      {otherUser.email}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </Pressable>
+              </Pressable>
+            </Swipeable>
           );
         }}
       />
@@ -173,7 +192,6 @@ const styles = StyleSheet.create({
   item: {
     borderRadius: 12,
     marginBottom: 14,
-    // ombre légère (fonctionne mieux sur fond clair, tu peux ajuster ou enlever si besoin)
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
@@ -196,5 +214,17 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     marginTop: 2,
+  },
+  swipeOpenButton: {
+    backgroundColor: "#2e86de",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  swipeOpenText: {
+    color: "white",
+    fontWeight: "700",
   },
 });
