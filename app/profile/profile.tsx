@@ -11,9 +11,12 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import authFetch from "../utils/authFetch";
 import { Swipeable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
+
+// Ajuste ces imports selon la vraie structure de ton projet
+import { useAuth } from "../../src/context/authContext";
+import authFetch from "../utils/authFetch";
 
 interface User {
   nom: string;
@@ -32,6 +35,8 @@ interface Item {
 
 export default function Profile() {
   const router = useRouter();
+  const { logout } = useAuth();
+
   const [user, setUser] = useState<User | null>(null);
   const [foundItems, setFoundItems] = useState<Item[]>([]);
   const [claimedItems, setClaimedItems] = useState<Item[]>([]);
@@ -165,6 +170,24 @@ export default function Profile() {
     );
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      "Déconnexion",
+      "Voulez-vous vraiment vous déconnecter ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Oui",
+          onPress: async () => {
+            await logout();
+            router.replace("/auth/login");
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -251,6 +274,9 @@ export default function Profile() {
           onPress={() => router.push("/legal/legal")}
         >
           <Text style={styles.accountText}>⚙️ Mentions légales</Text>
+        </Pressable>
+        <Pressable style={styles.accountRow} onPress={handleLogout}>
+          <Text style={styles.accountText}>🚪 Déconnexion</Text>
         </Pressable>
       </View>
     </ScrollView>
