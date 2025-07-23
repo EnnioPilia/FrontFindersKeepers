@@ -56,7 +56,9 @@ export default function RootLayout() {
           <Stack
             key={currentRoute}
             screenOptions={{
-              headerShown: true,
+              // Cache le header sur la page d'accueil ("/" et "/home/home")
+              headerShown: !["/", "/home/home"].includes(currentRoute),
+
               headerRight: () =>
                 showLogout ? (
                   <Pressable onPress={handleLogout} style={{ marginRight: 15 }}>
@@ -67,6 +69,7 @@ export default function RootLayout() {
                     />
                   </Pressable>
                 ) : null,
+
               headerBackVisible: false,
               headerTitleStyle: {
                 color: colorScheme === "dark" ? "white" : "black",
@@ -97,7 +100,7 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="conversation/conversation"
-              options={{ title: "Conversation" }}
+              options={{ title: " Mes conversation" }}
             />
             <Stack.Screen name="home/home" options={{ title: "Accueil" }} />
             <Stack.Screen
